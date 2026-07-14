@@ -1,0 +1,20 @@
+version: '3.5'
+
+name: rxnorm-explorer
+
+# Services
+services:
+  mariadb:
+    container_name: rxnorm-explorer-db
+    image: mariadb:10.9
+    ports:
+      - 3360:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: YOURPASSWORDHERE
+    volumes:
+      - './mysqldata:/var/lib/mysql'
+
+# Volumes
+volumes:
+  mysqldata:
+
