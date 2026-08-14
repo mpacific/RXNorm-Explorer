@@ -59,8 +59,7 @@ export default `
   }
 
   type Query {
+    searchRXNCONSO(searchTerm: String!, page: Int!): [RXNCONSO!]!
     allRXNCONSO(page: Int!): [RXNCONSO!]!
-    allRXNREL(page: Int!): [RXNREL!]!
-    allRXNSAT(page: Int!): [RXNSAT!]!
   }
 `
