@@ -5,6 +5,7 @@ import { useMemo } from "react"
 import LoadingSearchResults from "./loadingSearchResults"
 import SearchError from "./searchError"
 import NoSearchResults from "./noSearchResults"
+import SearchResultsList from "./searchResultsList"
 
 const searchString = gql`
   query searchRXNCONSO($searchTerm: String!, $page: Int!) {
@@ -36,11 +37,12 @@ export default function SearchResults(props: {
   })
 
   const searchParams: URLSearchParams = useSearchParams()
-  const params: {
-    set: (key: string, value: string) => void
-  } = new URLSearchParams(searchParams.toString())
 
   const [searchLoading, searchError, searchResults] = useMemo(() => {
+    const params: {
+      set: (key: string, value: string) => void
+    } = new URLSearchParams(searchParams.toString())
+
     let searchLoading: boolean = false
     let searchError: string = ""
     let searchResults: {
@@ -76,6 +78,7 @@ export default function SearchResults(props: {
         <SearchError searchError={searchError} />
       }
       {!data?.searchRXNCONSO?.length && !searchLoading && !searchError && <NoSearchResults />}
+      {data?.searchRXNCONSO?.length && !searchLoading && !searchError && <SearchResultsList searchResults={searchResults} />}
     </div>
   )
 }
