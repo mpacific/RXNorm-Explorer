@@ -1,4 +1,4 @@
-import { Container, TextField } from "@mui/material"
+import { TextField } from "@mui/material"
 import { useSearchParams, useRouter } from "next/navigation"
 
 export default function SearchBox (props: {
