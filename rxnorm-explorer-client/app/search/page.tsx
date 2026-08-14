@@ -1,8 +1,10 @@
 'use client';
 import { gql } from "@apollo/client"
 import { useQuery } from "@apollo/client/react"
-import { Box, Container, TextField, Typography } from "@mui/material"
-import React, { useMemo, useState } from "react";
+import { Box, Container, Typography } from "@mui/material"
+import { useMemo } from "react";
+import SearchBox from "../components/searchBox";
+import { useSearchParams } from "next/navigation";
 
 const searchString = gql`
   query searchRXNCONSO($searchTerm: String!, $page: Int!) {
@@ -17,25 +19,19 @@ const searchString = gql`
 
 const NoSearchTermMessage = () => {
   return (
-    <Container maxWidth="xl">
-      <Box><Typography>No search term provided</Typography></Box>
-    </Container>
+    <Box><Typography>No search term provided</Typography></Box>
   )
 }
 
 const LoadingSearchResults = () => {
   return (
-    <Container>
-      <Typography>Loading...</Typography>
-    </Container>
+    <Typography>Loading...</Typography>
   )
 }
 
 const NoSearchResults = () => {
     return (
-      <Container maxWidth="xl">
-        <Box><Typography>No search results found.</Typography></Box>
-      </Container>
+      <Box><Typography>No search results found.</Typography></Box>
     )
 }
 
@@ -43,9 +39,7 @@ const SearchError = (props: {
   searchError: string
 }) => {
   return (
-    <Container>
-      <Typography><strong>Error while trying to fetch search results: </strong> {props.searchError}</Typography>
-    </Container>
+    <Typography><strong>Error while trying to fetch search results: </strong> {props.searchError}</Typography>
   )
 }
 
@@ -53,16 +47,7 @@ const SearchResults = (props: {
   searchTerm: string,
   page: number
 }) => {
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState("");
-  const [searchResults, setSearchResults] = useState<{ 
-    id: number,
-    RXCUI: string,
-    TTY: string,
-    STR: string; 
-  }[]>([]);
-
-  let { loading, error, data } = useQuery<{
+  const { loading, error, data } = useQuery<{
     searchRXNCONSO: {
       id: number,
       RXCUI: string,
@@ -76,26 +61,37 @@ const SearchResults = (props: {
     }
   })
 
-  useMemo(() => {
+  const searchParams: URLSearchParams = useSearchParams()
+  const params: {
+    set: (key: string, value: string) => void
+  } = new URLSearchParams(searchParams.toString())
+
+  const [searchLoading, searchError, searchResults] = useMemo(() => {
+    let searchLoading: boolean = false
+    let searchError: string = ""
+    let searchResults: {
+      id: number,
+      RXCUI: string,
+      TTY: string,
+      STR: string
+    }[] = []
+
     if (loading) {
-      setSearchLoading(true)
-    } else {
-      setSearchLoading(false)
+      searchLoading = true
     }
 
     if (error) {
-      setSearchError(error.message)
-    } else {
-      setSearchError("")
+      searchError = error.message
     }
 
     if (props.searchTerm && data?.searchRXNCONSO?.length) {
-      setSearchResults(data?.searchRXNCONSO)
-      console.log(data?.searchRXNCONSO)
-    } else {
-      setSearchResults([])
+      searchResults = data?.searchRXNCONSO
+
+      params.set('search', props.searchTerm)
     }
-  }, [loading, error, data]);
+
+    return [searchLoading, searchError, searchResults]
+  }, [loading, error, data, props.searchTerm]);
 
   return (
     <div>
@@ -110,41 +106,35 @@ const SearchResults = (props: {
   )
 }
 
-const SearchBox = (props: {
-  searchTerm: string,
-  setPageSearchTerm: (value: string) => void,
-  setDoSearch: (doSearch: boolean) => void
-}) => {
-  return (
-    <Container style={{
-      paddingBottom: "2em"
-    }}>
-      <Typography variant="h4" gutterBottom>Search</Typography>
-      <TextField fullWidth id="searchBox" label="Search by drug name or RXCUI" helperText="Hit enter to submit search" variant="standard" defaultValue={props.searchTerm} onKeyUp={(e: React.KeyboardEvent<HTMLDivElement>) => { 
-        const target = e.target as HTMLInputElement
-        props.setPageSearchTerm(target.value || "") 
-        props.setDoSearch(e.key === "Enter")
-      }} />
-    </Container>
-  )
-}
-
 export default function Search(props: {
   searchTerm: string,
   page: number
 }) {
-  const [pageSearchTerm, setPageSearchTerm] = useState(props.searchTerm);
-  const [doSearch, setDoSearch] = useState(false)
+  const searchParams: URLSearchParams = useSearchParams()
+  const params: {
+    search?: string,
+    get: (key: string) => string | null
+  } = new URLSearchParams(searchParams.toString())
+  const urlSearchTerm: string | null = params.get('search')
+  
+  const [pageSearchTerm, doSearch] = useMemo(() => {
+    if (urlSearchTerm) {
+      return [urlSearchTerm, true]
+    }
+
+    return [props.searchTerm, false]
+  }, [urlSearchTerm])
 
   return (
-    <div>
-      <SearchBox searchTerm={pageSearchTerm} setPageSearchTerm={setPageSearchTerm} setDoSearch={setDoSearch} />
+    <Container>
+      <Typography variant="h4" gutterBottom>Search Results</Typography>
+      <SearchBox searchTerm={pageSearchTerm} />
       {pageSearchTerm && doSearch && 
         <SearchResults searchTerm={pageSearchTerm} page={props.page} />
       }
       {!pageSearchTerm && 
         <NoSearchTermMessage />
       }
-    </div>
+    </Container>
   )
 }
