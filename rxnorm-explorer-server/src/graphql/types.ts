@@ -60,6 +60,5 @@ export default `
 
   type Query {
     searchRXNCONSO(searchTerm: String!, page: Int!): [RXNCONSO!]!
-    allRXNCONSO(page: Int!): [RXNCONSO!]!
   }
 `
