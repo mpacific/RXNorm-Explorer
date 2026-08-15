@@ -1,5 +1,5 @@
-import { PrismaMariaDb } from "@prisma/adapter-mariadb";
-import { PrismaClient } from "../generated/prisma/client.js";
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import { PrismaClient } from '../generated/prisma/client.js';
 
 const getDatabase = () => {
   const adapter = new PrismaMariaDb({
@@ -11,12 +11,12 @@ const getDatabase = () => {
     logger: {
       error: (error) => {
         console.error('PrismaAdapterError', error);
-      }
-    }
-  })
+      },
+    },
+  });
   return new PrismaClient({
-    adapter
-  })
-}
+    adapter,
+  });
+};
 
-export const prisma = getDatabase()
+export const prisma = getDatabase();

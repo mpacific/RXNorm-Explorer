@@ -1,8 +1,5 @@
-import { Typography } from "@mui/material";
+import { Typography } from '@mui/material';
 
 export default function LoadingSearchResults() {
-  return (
-    <Typography>Loading...</Typography>
-  )
+  return <Typography>Loading...</Typography>;
 }
-
