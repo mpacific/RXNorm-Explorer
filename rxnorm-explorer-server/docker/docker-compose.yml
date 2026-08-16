@@ -4,9 +4,9 @@ name: rxnorm-explorer
 
 # Services
 services:
-  mariadb:
+  mysql:
     container_name: rxnorm-explorer-db
-    image: mariadb:10.9
+    image: mysql
     ports:
       - 3360:3306
     environment:
