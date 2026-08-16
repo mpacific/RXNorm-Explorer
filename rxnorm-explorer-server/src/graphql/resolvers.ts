@@ -34,6 +34,11 @@ export default {
             in: ['SBD', 'SCD', 'SBDG', 'SCDG', 'SBDF', 'SCDF'],
           },
         },
+        orderBy: [
+          {
+            id: 'asc',
+          },
+        ],
         take: limit,
         skip: offset,
       });
