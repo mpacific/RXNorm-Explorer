@@ -17,7 +17,7 @@ export default function SearchBox(props: { searchTerm: string }) {
       <TextField
         fullWidth
         id="searchBox"
-        label="Search by drug name or RXCUI"
+        label="Search by drug name, RXCUI, or NDC"
         helperText="Hit enter to submit search"
         variant="standard"
         defaultValue={props.searchTerm}
