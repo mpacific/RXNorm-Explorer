@@ -13,6 +13,17 @@ export default {
       const offset = (args.page - 1) * limit;
 
       return prisma.rXNCONSO.findMany({
+        select: {
+          id: true,
+          TTY: true,
+          RXCUI: true,
+          STR: true,
+          RXNSAT: {
+            select: {
+              ATV: true,
+            },
+          },
+        },
         where: {
           OR: [
             {
@@ -43,9 +54,6 @@ export default {
         ],
         take: limit,
         skip: offset,
-        include: {
-          RXNSAT: true,
-        },
       });
     },
   },

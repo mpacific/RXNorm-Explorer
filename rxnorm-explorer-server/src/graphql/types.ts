@@ -19,6 +19,9 @@ export default `
     SRL: String
     SUPPRESS: String
     CVF: String
+    RXNREL1: [RXNREL]
+    RXNREL2: [RXNREL]
+    RXNSAT: [RXNSAT]
   }
 
   type RXNREL {
