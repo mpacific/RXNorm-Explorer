@@ -1,0 +1,5 @@
+-- CreateIndex
+CREATE INDEX `RXNSAT_ATN_idx` ON `RXNSAT`(`ATN`(100));
+
+-- CreateIndex
+CREATE INDEX `RXNSAT_ATV_idx` ON `RXNSAT`(`ATV`(100));
