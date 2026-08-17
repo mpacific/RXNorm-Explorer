@@ -2,17 +2,41 @@ import { prisma } from '../lib/prisma.js';
 
 export default {
   Query: {
-    searchRXNCONSO: (
+    searchRXNCONSO: async (
       _: void,
       args: {
         searchTerm: string;
-        page: number;
+        cursor: number;
       }
     ) => {
       const limit = 50;
-      const offset = (args.page - 1) * limit;
+      const cursor = args.cursor || 0;
 
-      return prisma.rXNCONSO.findMany({
+      const criteria = {
+        OR: [
+          {
+            STR: {
+              contains: args.searchTerm,
+            },
+          },
+          {
+            RXCUI: args.searchTerm,
+          },
+          {
+            RXNSAT: {
+              some: {
+                ATN: 'NDC',
+                ATV: args.searchTerm,
+              },
+            },
+          },
+        ],
+        TTY: {
+          in: ['SBD', 'SCD', 'SBDG', 'SCDG', 'SBDF', 'SCDF'],
+        },
+      };
+
+      const rows = await prisma.rXNCONSO.findMany({
         select: {
           id: true,
           TTY: true,
@@ -25,26 +49,9 @@ export default {
           },
         },
         where: {
-          OR: [
-            {
-              STR: {
-                contains: args.searchTerm,
-              },
-            },
-            {
-              RXCUI: args.searchTerm,
-            },
-            {
-              RXNSAT: {
-                some: {
-                  ATN: 'NDC',
-                  ATV: args.searchTerm,
-                },
-              },
-            },
-          ],
-          TTY: {
-            in: ['SBD', 'SCD', 'SBDG', 'SCDG', 'SBDF', 'SCDF'],
+          ...criteria,
+          id: {
+            gt: cursor,
           },
         },
         orderBy: [
@@ -53,8 +60,16 @@ export default {
           },
         ],
         take: limit,
-        skip: offset,
       });
+
+      const totalCount = await prisma.rXNCONSO.count({
+        where: criteria,
+      });
+
+      return {
+        rows,
+        totalCount,
+      };
     },
   },
 };

@@ -1,83 +1,93 @@
 import { gql } from '@apollo/client';
 import { useQuery } from '@apollo/client/react';
 import { useSearchParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import LoadingSearchResults from './loadingSearchResults';
 import SearchError from './searchError';
 import NoSearchResults from './noSearchResults';
 import SearchResultsList from './searchResultsList';
 
 const searchString = gql`
-  query searchRXNCONSO($searchTerm: String!, $page: Int!) {
-    searchRXNCONSO(searchTerm: $searchTerm, page: $page) {
-      id
-      RXCUI
-      TTY
-      STR
+  query searchRXNCONSO($searchTerm: String!, $cursor: Int) {
+    searchRXNCONSO(searchTerm: $searchTerm, cursor: $cursor) {
+      rows {
+        id
+        RXCUI
+        TTY
+        STR
+      }
+      totalCount
     }
   }
 `;
 
 export default function SearchResults(props: {
   searchTerm: string;
-  page: number;
+  cursor: number;
 }) {
+  const [cursor, setCursor] = useState(props.cursor || 0);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [searchResults, setSearchResults] = useState<
+    { id: number; RXCUI: string; TTY: string; STR: string }[]
+  >([]);
+  const [totalCount, setTotalCount] = useState(0);
+
   const { loading, error, data } = useQuery<{
     searchRXNCONSO: {
-      id: number;
-      RXCUI: string;
-      TTY: string;
-      STR: string;
-    }[];
+      rows: {
+        id: number;
+        RXCUI: string;
+        TTY: string;
+        STR: string;
+      }[];
+      totalCount: number;
+    };
   }>(searchString, {
     variables: {
       searchTerm: props.searchTerm,
-      page: props.page || 1,
+      cursor: cursor || 0,
     },
   });
 
   const searchParams: URLSearchParams = useSearchParams();
 
-  const [searchLoading, searchError, searchResults] = useMemo(() => {
+  useEffect(() => {
     const params: {
       set: (key: string, value: string) => void;
     } = new URLSearchParams(searchParams.toString());
 
-    let searchLoading: boolean = false;
-    let searchError: string = '';
-    let searchResults: {
-      id: number;
-      RXCUI: string;
-      TTY: string;
-      STR: string;
-    }[] = [];
-
     if (loading) {
-      searchLoading = true;
+      setSearchLoading(true);
+    } else {
+      setSearchLoading(false);
     }
 
     if (error) {
-      searchError = error.message;
+      setSearchError(error.message);
+    } else {
+      setSearchError('');
     }
 
-    if (props.searchTerm && data?.searchRXNCONSO?.length) {
-      searchResults = data?.searchRXNCONSO;
+    if (props.searchTerm && data?.searchRXNCONSO?.rows?.length) {
+      setSearchResults(data?.searchRXNCONSO?.rows);
+      setTotalCount(data?.searchRXNCONSO?.totalCount);
 
       params.set('search', props.searchTerm);
+    } else {
     }
-
-    return [searchLoading, searchError, searchResults];
   }, [loading, error, data, props.searchTerm]);
 
   return (
     <div>
-      {searchLoading && <LoadingSearchResults />}
       {searchError && <SearchError searchError={searchError} />}
-      {!data?.searchRXNCONSO?.length && !searchLoading && !searchError && (
-        <NoSearchResults />
-      )}
-      {data?.searchRXNCONSO?.length && !searchLoading && !searchError && (
-        <SearchResultsList searchResults={searchResults} />
+      {!searchError && (
+        <SearchResultsList
+          searchResults={searchResults}
+          totalCount={totalCount}
+          loading={searchLoading}
+          setCursor={setCursor}
+        />
       )}
     </div>
   );

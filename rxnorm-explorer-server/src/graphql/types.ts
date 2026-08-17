@@ -61,7 +61,12 @@ export default `
     CVF: String
   }
 
+  type searchRXNCONSOResult {
+    rows: [RXNCONSO]!
+    totalCount: Int!
+  }
+
   type Query {
-    searchRXNCONSO(searchTerm: String!, page: Int!): [RXNCONSO!]!
+    searchRXNCONSO(searchTerm: String!, cursor: Int): searchRXNCONSOResult!
   }
 `;

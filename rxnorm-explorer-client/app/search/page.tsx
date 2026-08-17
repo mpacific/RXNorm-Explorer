@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import NoSearchTerm from '../components/noSearchTerm';
 import SearchResults from '../components/searchResults';
 
-export default function Search(props: { searchTerm: string; page: number }) {
+export default function Search(props: { searchTerm: string; cursor: number }) {
   const searchParams: URLSearchParams = useSearchParams();
   const params: {
     search?: string;
@@ -29,7 +29,7 @@ export default function Search(props: { searchTerm: string; page: number }) {
       </Typography>
       <SearchBox searchTerm={pageSearchTerm} />
       {pageSearchTerm && doSearch && (
-        <SearchResults searchTerm={pageSearchTerm} page={props.page} />
+        <SearchResults searchTerm={pageSearchTerm} cursor={props.cursor || 0} />
       )}
       {!pageSearchTerm && <NoSearchTerm />}
     </Container>

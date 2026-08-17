@@ -36,7 +36,7 @@ export default function RootLayout({
     <html lang="en">
       <ApolloProvider>
         <AppRouterCacheProvider>
-          <body className="p-10">
+          <body>
             <Header />
             <div className="content-root">{children}</div>
           </body>
