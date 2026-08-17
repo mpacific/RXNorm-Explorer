@@ -85,6 +85,7 @@ export default function SearchResultsList(props: {
       paginationModel={paginationModel}
       onPaginationModelChange={handlePaginationModelChange}
       loading={props.loading}
+      disableColumnSorting
     />
   );
 }
