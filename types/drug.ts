@@ -1,4 +1,4 @@
-import { RelatedDrugs } from "./relatedDrugs";
+import { type RelatedDrugs } from "./relatedDrugs";
 
 export type Drug = {
   id: number;
@@ -6,7 +6,7 @@ export type Drug = {
   RXCUI: string;
   STR: string;
   RXNSAT?: {
-    ATV: string;
+    ATV: string | null;
   }[];
   RelatedDrugs?: RelatedDrugs;
 };

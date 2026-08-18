@@ -1,6 +1,7 @@
 import { GraphQLError } from 'graphql';
 import { prisma } from '../lib/prisma.js';
 import type { RelatedDrugs } from '../../../types/relatedDrugs.js';
+import type { Drug } from '../../../types/drug.js';
 
 const excludeTtyList = ['DP', 'SU', 'TMSY', 'SY'];
 
@@ -16,22 +17,7 @@ export default {
 
       // Prisma is unable to do a join here to RXNREL the way
       // that was needed, so I am breaking that into its own query.
-      const drug: {
-        id: number;
-        RXCUI: string;
-        TTY: string;
-        STR: string;
-        RXNSAT: {
-          RXNCONSO: {
-            id: number;
-            RXCUI: string;
-            TTY: string;
-            STR: string;
-          } | null;
-          ATV: string | null;
-        }[];
-        RelatedDrugs?: RelatedDrugs | null;
-      } | null = await prisma.rXNCONSO.findUnique({
+      const drug: Drug | null = await prisma.rXNCONSO.findUnique({
         select: {
           id: true,
           RXCUI: true,
