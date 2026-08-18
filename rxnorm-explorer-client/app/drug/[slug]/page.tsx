@@ -4,7 +4,6 @@ import ErrorMessage from '@/app/components/error';
 import { gql } from '@apollo/client';
 import { useQuery } from '@apollo/client/react';
 import { useParams } from 'next/navigation';
-import NotFoundMessage from '@/app/components/notFound';
 import DrugDetail from '@/app/components/drugDetail';
 import { Drug } from '../../../../types/drug';
 
@@ -17,12 +16,6 @@ const getRXNCONSOString = gql`
       STR
       RXNSAT {
         ATV
-        RXNCONSO {
-          id
-          RXCUI
-          TTY
-          STR
-        }
       }
       RelatedDrugs {
         r_RELA
@@ -63,10 +56,7 @@ export default function DrugDetailPage() {
     <div>
       {loading && <LoadingMessage />}
       {error && <ErrorMessage searchError={error.message} />}
-      {!loading && !error && !data && <NotFoundMessage />}
       {!loading && !error && data && <DrugDetail drug={data.getRXNCONSO} />}
     </div>
   );
-
-  return <div>{drugId}!</div>;
 }
