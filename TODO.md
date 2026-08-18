@@ -1,7 +1,6 @@
 ## TODO
 
-- Drug detail page
-- Sorting
+- Sorting of search results
 - README
 - Tests
 - Prisma package scripts

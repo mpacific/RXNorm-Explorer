@@ -1,14 +1,10 @@
 import { DataGrid, GridRowParams } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Drug } from '../../../types/drug';
 
 export default function SearchResultsList(props: {
-  searchResults: {
-    id: number;
-    RXCUI: string;
-    TTY: string;
-    STR: string;
-  }[];
+  searchResults: Drug[];
   totalCount?: number;
   loading: boolean;
   setCursor: (cursor: number) => void;

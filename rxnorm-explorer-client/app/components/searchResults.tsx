@@ -1,11 +1,10 @@
 import { gql } from '@apollo/client';
 import { useQuery } from '@apollo/client/react';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
-import LoadingSearchResults from './loadingSearchResults';
-import SearchError from './searchError';
-import NoSearchResults from './noSearchResults';
+import { useEffect, useState } from 'react';
+import ErrorMessage from './error';
 import SearchResultsList from './searchResultsList';
+import { Drug } from '../../../types/drug';
 
 const searchString = gql`
   query searchRXNCONSO($searchTerm: String!, $cursor: Int) {
@@ -35,12 +34,7 @@ export default function SearchResults(props: {
 
   const { loading, error, data } = useQuery<{
     searchRXNCONSO: {
-      rows: {
-        id: number;
-        RXCUI: string;
-        TTY: string;
-        STR: string;
-      }[];
+      rows: Drug[];
       totalCount: number;
     };
   }>(searchString, {
@@ -69,9 +63,9 @@ export default function SearchResults(props: {
       setSearchError('');
     }
 
-    if (props.searchTerm && data?.searchRXNCONSO?.rows?.length) {
-      setSearchResults(data?.searchRXNCONSO?.rows);
-      setTotalCount(data?.searchRXNCONSO?.totalCount);
+    if (props.searchTerm) {
+      setSearchResults(data?.searchRXNCONSO?.rows || []);
+      setTotalCount(data?.searchRXNCONSO?.totalCount || 0);
 
       params.set('search', props.searchTerm);
     } else {
@@ -80,7 +74,7 @@ export default function SearchResults(props: {
 
   return (
     <div>
-      {searchError && <SearchError searchError={searchError} />}
+      {searchError && <ErrorMessage searchError={searchError} />}
       {!searchError && (
         <SearchResultsList
           searchResults={searchResults}

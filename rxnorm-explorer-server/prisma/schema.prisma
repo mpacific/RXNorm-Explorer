@@ -27,8 +27,6 @@ model RXNCONSO {
   SRL      String?  @db.VarChar(10)
   SUPPRESS String?  @db.VarChar(1)
   CVF      String?  @db.VarChar(50)
-  RXNREL1  RXNREL[] @relation("RXNREL1")
-  RXNREL2  RXNREL[] @relation("RXNREL2")
   RXNSAT   RXNSAT[] @relation("RXNSAT")
 
   @@unique([RXAUI])
@@ -55,11 +53,9 @@ model RXNREL {
   RG        String?   @db.VarChar(10)
   SUPPRESS  String?   @db.VarChar(1)
   CVF       String?   @db.VarChar(50)
-  RXNCONSO1 RXNCONSO? @relation("RXNREL1", fields: [RXAUI1], references: [RXAUI])
-  RXNCONSO2 RXNCONSO? @relation("RXNREL2", fields: [RXAUI2], references: [RXAUI])
 
-  @@index([RXAUI1])
-  @@index([RXAUI2])
+  @@index([RXCUI1])
+  @@index([RXCUI2])
 }
 
 model RXNSAT {

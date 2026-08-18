@@ -19,29 +19,23 @@ export default `
     SRL: String
     SUPPRESS: String
     CVF: String
-    RXNREL1: [RXNREL]
-    RXNREL2: [RXNREL]
     RXNSAT: [RXNSAT]
+    RelatedDrugs: [RelatedDrugs]
   }
 
-  type RXNREL {
-    id: ID!
-    RXCUI1: String
-    RXAUI1: String
-    STYPE1: String
-    REL: String
-    RXCUI2: String
-    RXAUI2: String
-    STYPE2: String
-    RELA: String
-    RUI: String
-    SRUI: String
-    SAB: String!
-    SL: String
-    DIR: String
-    RG: String
-    SUPPRESS: String
-    CVF: String
+  type RelatedDrugs {
+    r_id: Int!
+    r_RELA: String!
+    r_RXCUI1: String!
+    r_RXCUI2: String!
+    c1_id: Int!
+    c1_RXCUI: String!
+    c1_TTY: String!
+    c1_STR: String!
+    c2_id: Int!
+    c2_RXCUI: String!
+    c2_TTY: String!
+    c2_STR: String!
   }
 
   type RXNSAT {
@@ -59,6 +53,7 @@ export default `
     ATV: String
     SUPPRESS: String
     CVF: String
+    RXNCONSO: RXNCONSO
   }
 
   type searchRXNCONSOResult {
@@ -68,5 +63,6 @@ export default `
 
   type Query {
     searchRXNCONSO(searchTerm: String!, cursor: Int): searchRXNCONSOResult!
+    getRXNCONSO(id: Int!): RXNCONSO!
   }
 `;

@@ -11,8 +11,9 @@ import '@fontsource/roboto/700.css';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'RXNorm',
-  description: 'RXNorm GraphQL example',
+  title: 'RXNorm Explorer',
+  description:
+    'RXNorm Explorer allows you to look up prescribable drugs and view the relationships between them',
 };
 
 const Header = () => {
