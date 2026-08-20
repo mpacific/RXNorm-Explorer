@@ -1,6 +1,5 @@
 ## TODO
 
-- README
 - Prisma package scripts
 - Visual improvements
 - Tests

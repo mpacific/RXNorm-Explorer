@@ -2,4 +2,3 @@ node_modules
 docker/mysqldata
 /src/generated/prisma
 .env
-.DS_Store
