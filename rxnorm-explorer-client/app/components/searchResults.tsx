@@ -7,8 +7,18 @@ import SearchResultsList from './searchResultsList';
 import { Drug } from '../../../types/drug';
 
 const searchString = gql`
-  query searchRXNCONSO($searchTerm: String!, $cursor: Int) {
-    searchRXNCONSO(searchTerm: $searchTerm, cursor: $cursor) {
+  query searchRXNCONSO(
+    $searchTerm: String!
+    $cursor: Int
+    $sortField: String
+    $sortDirection: String
+  ) {
+    searchRXNCONSO(
+      searchTerm: $searchTerm
+      cursor: $cursor
+      sortField: $sortField
+      sortDirection: $sortDirection
+    ) {
       rows {
         id
         RXCUI
@@ -25,6 +35,8 @@ export default function SearchResults(props: {
   cursor: number;
 }) {
   const [cursor, setCursor] = useState(props.cursor || 0);
+  const [sortField, setSortField] = useState('STR');
+  const [sortDirection, setSortDirection] = useState('asc');
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [searchResults, setSearchResults] = useState<
@@ -41,6 +53,8 @@ export default function SearchResults(props: {
     variables: {
       searchTerm: props.searchTerm,
       cursor: cursor || 0,
+      sortField,
+      sortDirection,
     },
   });
 
@@ -80,7 +94,11 @@ export default function SearchResults(props: {
           searchResults={searchResults}
           totalCount={totalCount}
           loading={searchLoading}
+          sortField={sortField}
+          sortDirection={sortDirection}
           setCursor={setCursor}
+          setSortField={setSortField}
+          setSortDirection={setSortDirection}
         />
       )}
     </div>

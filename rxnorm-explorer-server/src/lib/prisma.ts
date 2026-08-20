@@ -8,6 +8,7 @@ const getDatabase = () => {
     password: process.env.DATABASE_PASSWORD!,
     port: Number(process.env.DATABASE_PORT),
     database: process.env.DATABASE_NAME!,
+    allowPublicKeyRetrieval: true,
     logger: {
       error: (error) => {
         console.error('PrismaAdapterError', error);

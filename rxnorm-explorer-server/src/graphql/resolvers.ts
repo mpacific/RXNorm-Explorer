@@ -82,10 +82,14 @@ export default {
       args: {
         searchTerm: string;
         cursor: number;
+        sortField: string;
+        sortDirection: string;
       }
     ) => {
       const limit = 50;
       const cursor = args.cursor || 0;
+      const sortField = args.sortField || 'STR';
+      const sortDirection = args.sortDirection === 'desc' ? 'desc' : 'asc';
 
       const criteria = {
         OR: [
@@ -134,7 +138,7 @@ export default {
         },
         orderBy: [
           {
-            id: 'asc',
+            [sortField]: sortDirection,
           },
         ],
         take: limit,

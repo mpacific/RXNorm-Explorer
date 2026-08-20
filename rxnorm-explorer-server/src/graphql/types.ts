@@ -62,7 +62,7 @@ export default `
   }
 
   type Query {
-    searchRXNCONSO(searchTerm: String!, cursor: Int): searchRXNCONSOResult!
+    searchRXNCONSO(searchTerm: String!, cursor: Int, sortField: String, sortDirection: String): searchRXNCONSOResult!
     getRXNCONSO(id: Int!): RXNCONSO!
   }
 `;

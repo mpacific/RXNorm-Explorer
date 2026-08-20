@@ -1,4 +1,9 @@
-import { DataGrid, GridRowParams } from '@mui/x-data-grid';
+import {
+  DataGrid,
+  GridRowParams,
+  GridSortDirection,
+  GridSortModel,
+} from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Drug } from '../../../types/drug';
@@ -7,13 +12,26 @@ export default function SearchResultsList(props: {
   searchResults: Drug[];
   totalCount?: number;
   loading: boolean;
+  sortField: string;
+  sortDirection: string;
   setCursor: (cursor: number) => void;
+  setSortField: (sortField: string) => void;
+  setSortDirection: (sortDirection: string) => void;
 }) {
+  const defaultSortingModel: GridSortModel = [
+    {
+      field: 'STR',
+      sort: 'asc',
+    },
+  ];
+
   const router = useRouter();
   const [paginationModel, setPagionationModel] = useState({
     page: 0,
     pageSize: 50,
   });
+  const [sortingModel, setSortingModel] =
+    useState<GridSortModel>(defaultSortingModel);
   const [pageCursor, setPageCursor] = useState<Record<string, number>>({});
 
   const columns = [
@@ -65,6 +83,24 @@ export default function SearchResultsList(props: {
     setPagionationModel(newPaginationModel);
   };
 
+  const handleSortingModelChange = (newSortingModel: GridSortModel) => {
+    if (!newSortingModel?.[0]) {
+      // If the sort direction is blank, then just go the opposite way
+      newSortingModel = [
+        {
+          field: props.sortField,
+          sort:
+            props.sortDirection === 'desc'
+              ? 'asc'
+              : ('desc' as GridSortDirection),
+        },
+      ];
+    }
+    props.setSortField(newSortingModel[0].field!);
+    props.setSortDirection(newSortingModel[0].sort!);
+    setSortingModel(newSortingModel);
+  };
+
   return (
     <DataGrid
       pageSizeOptions={[50]}
@@ -79,9 +115,10 @@ export default function SearchResultsList(props: {
       paginationMode="server"
       sortingMode="server"
       paginationModel={paginationModel}
+      sortModel={sortingModel}
       onPaginationModelChange={handlePaginationModelChange}
+      onSortModelChange={handleSortingModelChange}
       loading={props.loading}
-      disableColumnSorting
     />
   );
 }
