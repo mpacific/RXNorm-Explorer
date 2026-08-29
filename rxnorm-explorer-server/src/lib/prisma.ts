@@ -10,9 +10,8 @@ const getDatabase = () => {
     database: process.env.DATABASE_NAME!,
     allowPublicKeyRetrieval: true,
     logger: {
-      error: (error) => {
-        console.error('PrismaAdapterError', error);
-      },
+      query: (info) => console.log('Query:', info),
+      error: (error) => console.error('PrismaAdapterError', error),
     },
   });
   return new PrismaClient({

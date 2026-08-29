@@ -2,3 +2,4 @@ node_modules
 docker/mysqldata
 /src/generated/prisma
 .env
+dist/
