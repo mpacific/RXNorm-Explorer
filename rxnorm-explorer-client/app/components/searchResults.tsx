@@ -1,34 +1,27 @@
-import { gql } from '@apollo/client';
-import { useQuery } from '@apollo/client/react';
-import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import ErrorMessage from './error';
 import SearchResultsList from './searchResultsList';
-import { Drug } from '../../../types/drug';
+import { Drug } from '@/types/drug';
 
-const searchString = gql`
-  query searchRXNCONSO(
-    $searchTerm: String!
-    $cursor: Int
-    $sortField: String
-    $sortDirection: String
-  ) {
-    searchRXNCONSO(
-      searchTerm: $searchTerm
-      cursor: $cursor
-      sortField: $sortField
-      sortDirection: $sortDirection
-    ) {
-      rows {
-        id
-        RXCUI
-        TTY
-        STR
-      }
-      totalCount
-    }
+const fetchSearchResults = async (
+  searchTerm: string,
+  cursor: number,
+  sortField: string,
+  sortDirection: string
+): Promise<{
+  searchResults: Drug[];
+  totalResults: number;
+} | null> => {
+  const searchResults = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/search?searchTerm=${searchTerm}&cursor=${cursor}&sortField=${sortField}&sortDirection=${sortDirection}`
+  );
+
+  if (!searchResults.ok) {
+    throw new Error(`Search results error: ${searchResults.statusText}`);
   }
-`;
+
+  return searchResults.json();
+};
 
 export default function SearchResults(props: {
   searchTerm: string;
@@ -39,52 +32,24 @@ export default function SearchResults(props: {
   const [sortDirection, setSortDirection] = useState('asc');
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
-  const [searchResults, setSearchResults] = useState<
-    { id: number; RXCUI: string; TTY: string; STR: string }[]
-  >([]);
-  const [totalCount, setTotalCount] = useState(0);
-
-  const { loading, error, data } = useQuery<{
-    searchRXNCONSO: {
-      rows: Drug[];
-      totalCount: number;
-    };
-  }>(searchString, {
-    variables: {
-      searchTerm: props.searchTerm,
-      cursor: cursor || 0,
-      sortField,
-      sortDirection,
-    },
-  });
-
-  const searchParams: URLSearchParams = useSearchParams();
+  const [searchResults, setSearchResults] = useState<Drug[] | undefined>([]);
+  const [totalCount, setTotalCount] = useState<number | undefined>(0);
 
   useEffect(() => {
-    const params: {
-      set: (key: string, value: string) => void;
-    } = new URLSearchParams(searchParams.toString());
+    setSearchLoading(true);
 
-    if (loading) {
-      setSearchLoading(true);
-    } else {
-      setSearchLoading(false);
-    }
-
-    if (error) {
-      setSearchError(error.message);
-    } else {
-      setSearchError('');
-    }
-
-    if (props.searchTerm) {
-      setSearchResults(data?.searchRXNCONSO?.rows || []);
-      setTotalCount(data?.searchRXNCONSO?.totalCount || 0);
-
-      params.set('search', props.searchTerm);
-    } else {
-    }
-  }, [loading, error, data, props.searchTerm]);
+    fetchSearchResults(props.searchTerm, cursor, sortField, sortDirection)
+      .then((data) => {
+        setSearchResults(data?.searchResults);
+        setTotalCount(data?.totalResults);
+      })
+      .catch((error) => {
+        setSearchError(error.message);
+      })
+      .finally(() => {
+        setSearchLoading(false);
+      });
+  }, [props.searchTerm, cursor, sortField, sortDirection]);
 
   return (
     <div>

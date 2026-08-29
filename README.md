@@ -30,8 +30,6 @@ RxNorm Explorer is a simple search tool to view details about prescribable drugs
   - ``ALTER TABLE `RXNSAT` ADD `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST;``
 - From the `rxnorm-explorer-server` directory:
   1. Copy `.env.example` to `.env` and populate the variables. `PORT` is the node server port.
-  2. Type `npx prisma db push` in the terminal to run all migrations. You may ignore the warnings. This will take a while to run as these are large tables
-  3. Type `npx prisma generate` in the terminal to generate all Prisma database files
 - From the `rxnorm-explorer-client` directory:
-  1. Copy `.env.example` to `.env` and populate the variables. The apollo URL is address to the server API, ie `http://localhost:6109/graphql/`
+  1. Copy `.env.example` to `.env` and populate the variables. The API URL is address to the server API, ie `http://localhost:6109/`
 - From both `rxnorm-explorer-server` and `rxnorm-explorer-client` type `npm run dev` in the terminal to start the app.

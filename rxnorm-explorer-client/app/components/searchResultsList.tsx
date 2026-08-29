@@ -6,10 +6,10 @@ import {
 } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Drug } from '../../../types/drug';
+import { Drug } from '../../types/drug';
 
 export default function SearchResultsList(props: {
-  searchResults: Drug[];
+  searchResults: Drug[] | undefined;
   totalCount?: number;
   loading: boolean;
   sortField: string;
@@ -50,19 +50,16 @@ export default function SearchResultsList(props: {
     },
   ];
 
-  const rows: {
-    id: number;
-    RXCUI: string;
-    TTY: string;
-    STR: string;
-  }[] = [];
-  for (let i = 0; i < props.searchResults.length; i++) {
-    rows.push({
-      id: Number(props.searchResults[i].id),
-      RXCUI: props.searchResults[i].RXCUI,
-      TTY: props.searchResults[i].TTY,
-      STR: props.searchResults[i].STR,
-    });
+  const rows: Drug[] = [];
+  for (let i = 0; i < (props.searchResults?.length || 1); i++) {
+    if (props.searchResults?.[i]) {
+      rows.push({
+        id: Number(props.searchResults[i].id),
+        RXCUI: props.searchResults[i].RXCUI,
+        TTY: props.searchResults[i].TTY,
+        STR: props.searchResults[i].STR,
+      });
+    }
   }
 
   const handlePaginationModelChange = (newPaginationModel: {

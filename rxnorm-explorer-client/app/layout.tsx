@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import type { Metadata } from 'next';
 import './globals.css';
-import ApolloProvider from './providers/apolloProvider';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { AppBar, Toolbar, Typography } from '@mui/material';
 import '@fontsource/roboto/300.css';
@@ -35,14 +34,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <ApolloProvider>
-        <AppRouterCacheProvider>
-          <body>
-            <Header />
-            <div className="content-root">{children}</div>
-          </body>
-        </AppRouterCacheProvider>
-      </ApolloProvider>
+      <AppRouterCacheProvider>
+        <body>
+          <Header />
+          <div className="content-root">{children}</div>
+        </body>
+      </AppRouterCacheProvider>
     </html>
   );
 }

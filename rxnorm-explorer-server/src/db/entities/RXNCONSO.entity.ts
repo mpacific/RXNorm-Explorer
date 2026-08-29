@@ -1,4 +1,11 @@
-import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { RXNSAT } from './RXNSAT.entity';
 
 @Entity()
 export class RXNCONSO {
@@ -61,4 +68,7 @@ export class RXNCONSO {
 
   @Column({ nullable: true })
   CVF: string;
+
+  @OneToMany(() => RXNSAT, (rxnsat) => rxnsat.RXNCONSO)
+  RXNSAT: RXNSAT[];
 }
