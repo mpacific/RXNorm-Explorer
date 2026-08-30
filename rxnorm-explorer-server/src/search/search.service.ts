@@ -13,12 +13,12 @@ export class SearchService {
 
   async searchDrugs(
     searchTerm: string,
-    cursor: number,
+    cursor: string,
     sortField: string,
     sortDirection: 'ASC' | 'DESC' | 'desc' | 'asc',
   ): Promise<SearchResults> {
     const limit = 50;
-    cursor = cursor || 0;
+    cursor = cursor || '';
     sortField = sortField || 'STR';
     sortDirection = sortDirection === 'desc' ? 'DESC' : 'ASC';
 
@@ -29,30 +29,27 @@ export class SearchService {
 
     returnData.searchResults = await this.rxnconsoRepository
       .createQueryBuilder('rxnconso')
-      .leftJoinAndSelect('rxnconso.RXNSAT', 'rxnsat', 'rxnsat.ATN = "NDC"')
-      .where('rxnconso.id > :cursor', { cursor })
-      .andWhere(
-        'rxnconso.STR LIKE :searchTermLike OR rxnconso.RXCUI = :searchTermEqual OR rxnsat.ATV = :searchTermEqual',
-        { searchTermLike: `%${searchTerm}%`, searchTermEqual: searchTerm },
+      .where(
+        `rxnconso.${sortField} ${sortDirection === 'ASC' ? '>' : '<'} :cursor`,
+        { cursor },
       )
       .andWhere('rxnconso.TTY NOT IN ("DP", "SU", "TMSY", "SY")')
-      .andWhere('rxnsat.ATN = "NDC"')
+      .andWhere(
+        '(rxnconso.STR LIKE :searchTermLike OR rxnconso.RXCUI = :searchTermEqual)',
+        { searchTermLike: `%${searchTerm}%`, searchTermEqual: searchTerm },
+      )
       .select(['rxnconso.id', 'rxnconso.TTY', 'rxnconso.RXCUI', 'rxnconso.STR'])
-      .orderBy(sortField, sortDirection)
-      .groupBy('rxnconso.id')
+      .orderBy(`rxnconso.${sortField}`, sortDirection)
       .limit(limit)
       .getMany();
 
     returnData.totalResults = await this.rxnconsoRepository
       .createQueryBuilder('rxnconso')
-      .leftJoinAndSelect('rxnconso.RXNSAT', 'rxnsat')
       .where(
-        'rxnconso.STR LIKE :searchTermLike OR rxnconso.RXCUI = :searchTermEqual OR rxnsat.ATV = :searchTermEqual',
+        '(rxnconso.STR LIKE :searchTermLike OR rxnconso.RXCUI = :searchTermEqual)',
         { searchTermLike: `%${searchTerm}%`, searchTermEqual: searchTerm },
       )
       .andWhere('rxnconso.TTY NOT IN ("DP", "SU", "TMSY", "SY")')
-      .andWhere('rxnsat.ATN = "NDC"')
-      .groupBy('rxnconso.id')
       .getCount();
 
     return returnData;

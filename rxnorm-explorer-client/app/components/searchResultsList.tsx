@@ -7,15 +7,16 @@ import {
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Drug } from '../../types/drug';
+import { SortFields } from '../types/sortFields';
 
 export default function SearchResultsList(props: {
   searchResults: Drug[] | undefined;
   totalCount?: number;
   loading: boolean;
-  sortField: string;
+  sortField: SortFields;
   sortDirection: string;
-  setCursor: (cursor: number) => void;
-  setSortField: (sortField: string) => void;
+  setCursor: (cursor: string) => void;
+  setSortField: (sortField: SortFields) => void;
   setSortDirection: (sortDirection: string) => void;
 }) {
   const defaultSortingModel: GridSortModel = [
@@ -32,7 +33,7 @@ export default function SearchResultsList(props: {
   });
   const [sortingModel, setSortingModel] =
     useState<GridSortModel>(defaultSortingModel);
-  const [pageCursor, setPageCursor] = useState<Record<string, number>>({});
+  const [pageCursor, setPageCursor] = useState<Record<string, SortFields>>({});
 
   const columns = [
     {
@@ -69,11 +70,11 @@ export default function SearchResultsList(props: {
     if (newPaginationModel.page < paginationModel.page) {
       props.setCursor(pageCursor[newPaginationModel.page]);
     } else {
-      const lastRowId = rows?.[rows.length - 1]?.id;
-      props.setCursor(lastRowId);
+      const lastRowCursor = rows?.[rows.length - 1]?.[props.sortField];
+      props.setCursor(lastRowCursor);
 
       const pageCursors = pageCursor;
-      pageCursors[newPaginationModel.page] = lastRowId;
+      pageCursors[newPaginationModel.page] = lastRowCursor as SortFields;
       setPageCursor(pageCursors);
     }
 
@@ -93,7 +94,7 @@ export default function SearchResultsList(props: {
         },
       ];
     }
-    props.setSortField(newSortingModel[0].field!);
+    props.setSortField(newSortingModel[0].field! as SortFields);
     props.setSortDirection(newSortingModel[0].sort!);
     setSortingModel(newSortingModel);
   };

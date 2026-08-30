@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import ErrorMessage from './error';
 import SearchResultsList from './searchResultsList';
 import { Drug } from '@/types/drug';
+import { SearchTerm } from '../types/searchTerm';
+import { SortFields } from '../types/sortFields';
 
 const fetchSearchResults = async (
   searchTerm: string,
-  cursor: number,
+  cursor: string,
   sortField: string,
   sortDirection: string
 ): Promise<{
@@ -23,12 +25,9 @@ const fetchSearchResults = async (
   return searchResults.json();
 };
 
-export default function SearchResults(props: {
-  searchTerm: string;
-  cursor: number;
-}) {
-  const [cursor, setCursor] = useState(props.cursor || 0);
-  const [sortField, setSortField] = useState('STR');
+export default function SearchResults(props: SearchTerm) {
+  const [cursor, setCursor] = useState(props.cursor || '');
+  const [sortField, setSortField] = useState<SortFields>('STR');
   const [sortDirection, setSortDirection] = useState('asc');
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');

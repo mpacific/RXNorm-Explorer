@@ -10,7 +10,7 @@ export class SearchController {
   @Get()
   async searchDrugs(
     @Query('searchTerm') searchTerm: string,
-    @Query('cursor') cursor: number,
+    @Query('cursor') cursor: string,
     @Query('sortField') sortField: string,
     @Query('sortDirection') sortDirection: 'ASC' | 'DESC' | 'asc' | 'desc',
     @Res() res: Response,
