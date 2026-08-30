@@ -30,10 +30,10 @@ export default function Search(props: SearchTerm) {
       </Typography>
       <SearchBox searchTerm={pageSearchTerm} />
       {pageSearchTerm && doSearch && (
-        <SearchResults
-          searchTerm={pageSearchTerm}
-          cursor={props.cursor || ''}
-        />
+        // Keyed on the search term so a new search remounts rather than
+        // re-rendering -- otherwise the cursor from the old search survives
+        // and pages us into the middle of the new results.
+        <SearchResults key={pageSearchTerm} searchTerm={pageSearchTerm} />
       )}
       {!pageSearchTerm && <NoSearchTerm />}
     </Container>

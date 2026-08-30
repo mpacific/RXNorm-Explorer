@@ -11,6 +11,7 @@ export class SearchController {
   async searchDrugs(
     @Query('searchTerm') searchTerm: string,
     @Query('cursor') cursor: string,
+    @Query('cursorId') cursorId: string,
     @Query('sortField') sortField: string,
     @Query('sortDirection') sortDirection: 'ASC' | 'DESC' | 'asc' | 'desc',
     @Res() res: Response,
@@ -18,6 +19,7 @@ export class SearchController {
     const drugs: SearchResults = await this.serchService.searchDrugs(
       searchTerm,
       cursor,
+      cursorId,
       sortField,
       sortDirection,
     );

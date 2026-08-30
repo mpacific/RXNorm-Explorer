@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RXNCONSO } from '../db/entities/RXNCONSO.entity';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { SearchResults } from '../../types/searchResults';
+
+const SORT_FIELDS = ['STR', 'RXCUI', 'TTY'] as const;
+type SortField = (typeof SORT_FIELDS)[number];
+
+const EXCLUDED_TTYS = ['DP', 'SU', 'TMSY', 'SY'];
 
 @Injectable()
 export class SearchService {
@@ -14,44 +19,71 @@ export class SearchService {
   async searchDrugs(
     searchTerm: string,
     cursor: string,
+    cursorId: string,
     sortField: string,
     sortDirection: 'ASC' | 'DESC' | 'desc' | 'asc',
   ): Promise<SearchResults> {
     const limit = 50;
-    cursor = cursor || '';
-    sortField = sortField || 'STR';
-    sortDirection = sortDirection === 'desc' ? 'DESC' : 'ASC';
+    // sortField is interpolated into the SQL, so it has to come from a fixed list
+    const field: SortField = SORT_FIELDS.includes(sortField as SortField)
+      ? (sortField as SortField)
+      : 'STR';
+    const direction = sortDirection?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
-    const returnData: SearchResults = {
-      searchResults: [],
-      totalResults: 0,
+    // Every OR group is parenthesised explicitly. TypeORM only wraps clauses
+    // added with andWhere/orWhere, never the leading where(), so an unwrapped
+    // OR here silently swallows the filters that follow it.
+    const matchesSearchTerm = new Brackets((qb) =>
+      qb
+        .where('rxnconso.STR LIKE :searchTermLike', {
+          searchTermLike: `%${searchTerm}%`,
+        })
+        .orWhere('rxnconso.RXCUI = :searchTermEqual', {
+          searchTermEqual: searchTerm,
+        }),
+    );
+
+    const filtered = this.rxnconsoRepository
+      .createQueryBuilder('rxnconso')
+      .where(matchesSearchTerm)
+      .andWhere('rxnconso.TTY NOT IN (:...excludedTtys)', {
+        excludedTtys: EXCLUDED_TTYS,
+      });
+
+    const page = filtered.clone();
+
+    // Keyset pagination. STR, RXCUI and TTY are all non-unique, so the id
+    // breaks ties -- without it a page boundary landing in the middle of a run
+    // of equal values skips every remaining row in that run.
+    const afterCursor = Number(cursorId);
+    if (cursor && Number.isInteger(afterCursor)) {
+      const comparison = direction === 'ASC' ? '>' : '<';
+
+      page.andWhere(
+        new Brackets((qb) =>
+          qb
+            .where(`(rxnconso.${field} ${comparison} :cursor)`, { cursor })
+            .orWhere(
+              `(rxnconso.${field} = :cursor AND rxnconso.id ${comparison} :cursorId)`,
+              { cursor, cursorId: afterCursor },
+            ),
+        ),
+      );
+    }
+
+    return {
+      totalResults: await filtered.getCount(),
+      searchResults: await page
+        .select([
+          'rxnconso.id',
+          'rxnconso.TTY',
+          'rxnconso.RXCUI',
+          'rxnconso.STR',
+        ])
+        .orderBy(`rxnconso.${field}`, direction)
+        .addOrderBy('rxnconso.id', direction)
+        .limit(limit)
+        .getMany(),
     };
-
-    returnData.searchResults = await this.rxnconsoRepository
-      .createQueryBuilder('rxnconso')
-      .where(
-        `rxnconso.${sortField} ${sortDirection === 'ASC' ? '>' : '<'} :cursor`,
-        { cursor },
-      )
-      .andWhere('rxnconso.TTY NOT IN ("DP", "SU", "TMSY", "SY")')
-      .andWhere(
-        '(rxnconso.STR LIKE :searchTermLike OR rxnconso.RXCUI = :searchTermEqual)',
-        { searchTermLike: `%${searchTerm}%`, searchTermEqual: searchTerm },
-      )
-      .select(['rxnconso.id', 'rxnconso.TTY', 'rxnconso.RXCUI', 'rxnconso.STR'])
-      .orderBy(`rxnconso.${sortField}`, sortDirection)
-      .limit(limit)
-      .getMany();
-
-    returnData.totalResults = await this.rxnconsoRepository
-      .createQueryBuilder('rxnconso')
-      .where(
-        '(rxnconso.STR LIKE :searchTermLike OR rxnconso.RXCUI = :searchTermEqual)',
-        { searchTermLike: `%${searchTerm}%`, searchTermEqual: searchTerm },
-      )
-      .andWhere('rxnconso.TTY NOT IN ("DP", "SU", "TMSY", "SY")')
-      .getCount();
-
-    return returnData;
   }
 }

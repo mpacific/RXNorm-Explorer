@@ -8,6 +8,9 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Drug } from '../../types/drug';
 import { SortFields } from '../types/sortFields';
+import { Cursor } from '../types/cursor';
+
+const FIRST_PAGE: Record<number, Cursor | null> = { 0: null };
 
 export default function SearchResultsList(props: {
   searchResults: Drug[] | undefined;
@@ -15,9 +18,8 @@ export default function SearchResultsList(props: {
   loading: boolean;
   sortField: SortFields;
   sortDirection: string;
-  setCursor: (cursor: string) => void;
-  setSortField: (sortField: SortFields) => void;
-  setSortDirection: (sortDirection: string) => void;
+  setCursor: (cursor: Cursor | null) => void;
+  changeSort: (sortField: SortFields, sortDirection: string) => void;
 }) {
   const defaultSortingModel: GridSortModel = [
     {
@@ -33,7 +35,10 @@ export default function SearchResultsList(props: {
   });
   const [sortingModel, setSortingModel] =
     useState<GridSortModel>(defaultSortingModel);
-  const [pageCursor, setPageCursor] = useState<Record<string, SortFields>>({});
+  // Cursor to use for each page we've already visited. Page 0 is seeded with
+  // null so paging back to the start doesn't read a missing key.
+  const [pageCursors, setPageCursors] =
+    useState<Record<number, Cursor | null>>(FIRST_PAGE);
 
   const columns = [
     {
@@ -51,31 +56,38 @@ export default function SearchResultsList(props: {
     },
   ];
 
-  const rows: Drug[] = [];
-  for (let i = 0; i < (props.searchResults?.length || 1); i++) {
-    if (props.searchResults?.[i]) {
-      rows.push({
-        id: Number(props.searchResults[i].id),
-        RXCUI: props.searchResults[i].RXCUI,
-        TTY: props.searchResults[i].TTY,
-        STR: props.searchResults[i].STR,
-      });
-    }
-  }
+  const rows: Drug[] = (props.searchResults ?? []).map((searchResult) => ({
+    id: Number(searchResult.id),
+    RXCUI: searchResult.RXCUI,
+    TTY: searchResult.TTY,
+    STR: searchResult.STR,
+  }));
 
   const handlePaginationModelChange = (newPaginationModel: {
     page: number;
     pageSize: number;
   }) => {
     if (newPaginationModel.page < paginationModel.page) {
-      props.setCursor(pageCursor[newPaginationModel.page]);
+      props.setCursor(pageCursors[newPaginationModel.page] ?? null);
     } else {
-      const lastRowCursor = rows?.[rows.length - 1]?.[props.sortField];
-      props.setCursor(lastRowCursor);
+      const lastRow = rows[rows.length - 1];
 
-      const pageCursors = pageCursor;
-      pageCursors[newPaginationModel.page] = lastRowCursor as SortFields;
-      setPageCursor(pageCursors);
+      // Nothing to page forward from -- leave the grid where it is rather than
+      // sending an empty cursor and losing our place entirely.
+      if (!lastRow) {
+        return;
+      }
+
+      const nextCursor: Cursor = {
+        value: String(lastRow[props.sortField]),
+        id: lastRow.id,
+      };
+
+      props.setCursor(nextCursor);
+      setPageCursors({
+        ...pageCursors,
+        [newPaginationModel.page]: nextCursor,
+      });
     }
 
     setPagionationModel(newPaginationModel);
@@ -94,9 +106,17 @@ export default function SearchResultsList(props: {
         },
       ];
     }
-    props.setSortField(newSortingModel[0].field! as SortFields);
-    props.setSortDirection(newSortingModel[0].sort!);
+
+    props.changeSort(
+      newSortingModel[0].field! as SortFields,
+      newSortingModel[0].sort!
+    );
     setSortingModel(newSortingModel);
+
+    // The cursors we collected describe the old ordering, so drop them and
+    // start again from the first page.
+    setPageCursors(FIRST_PAGE);
+    setPagionationModel({ ...paginationModel, page: 0 });
   };
 
   return (
