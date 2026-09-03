@@ -6,7 +6,7 @@ import {
 } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Drug } from '../../types/drug';
+import { Drug } from '../../../rxnorm-explorer-server/types/drug';
 import { SortFields } from '../types/sortFields';
 import { Cursor } from '../types/cursor';
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import ErrorMessage from './error';
 import SearchResultsList from './searchResultsList';
-import { Drug } from '@/types/drug';
+import { Drug } from '../../../rxnorm-explorer-server/types/drug';
 import { SortFields } from '../types/sortFields';
 import { Cursor } from '../types/cursor';
 

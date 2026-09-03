@@ -3,11 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { RXNCONSO } from '../db/entities/RXNCONSO.entity';
 import { Brackets, Repository } from 'typeorm';
 import { SearchResults } from '../../types/searchResults';
+import { EXCLUDED_TTYS } from '../shared/excludedTtys';
 
 const SORT_FIELDS = ['STR', 'RXCUI', 'TTY'] as const;
 type SortField = (typeof SORT_FIELDS)[number];
-
-const EXCLUDED_TTYS = ['DP', 'SU', 'TMSY', 'SY'];
 
 @Injectable()
 export class SearchService {
@@ -40,7 +39,14 @@ export class SearchService {
         })
         .orWhere('rxnconso.RXCUI = :searchTermEqual', {
           searchTermEqual: searchTerm,
-        }),
+        })
+        .orWhere(
+          'EXISTS (SELECT 1 FROM RXNSAT rxnsat where rxnsat.RXAUI = rxnconso.RXAUI AND rxnsat.ATN = :ndc AND rxnsat.ATV = :searchTermEqual)',
+          {
+            searchTermEqual: searchTerm,
+            ndc: 'NDC',
+          },
+        ),
     );
 
     const filtered = this.rxnconsoRepository

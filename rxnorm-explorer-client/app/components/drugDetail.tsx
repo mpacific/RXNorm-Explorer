@@ -1,6 +1,5 @@
 import {
   Container,
-  Grid,
   Table,
   TableBody,
   TableCell,
@@ -9,9 +8,9 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import { Drug } from '../../../types/drug';
+import { Drug } from '../../../rxnorm-explorer-server/types/drug';
 import Link from 'next/link';
-import { RelatedDrug } from '../../../types/relatedDrugs';
+import { RelatedDrug } from '../../../rxnorm-explorer-server/types/relatedDrugs';
 import { ReactElement } from 'react';
 import { DataGrid, GridRenderCellParams } from '@mui/x-data-grid';
 
@@ -62,7 +61,7 @@ type DetailRelatedDrug = {
 };
 
 export default function DrugDetail(props: { drug: Drug }) {
-  const ndcArray = props.drug?.RXNSAT?.map((RXNSAT) => RXNSAT.ATV);
+  const ndcArray = props.drug?.ATV?.split(',');
 
   const rows: DetailRelatedDrug[] = [];
   props.drug?.RelatedDrugs?.map((drug: RelatedDrug): void => {
