@@ -24,7 +24,7 @@ RxNorm Explorer is a simple search tool to view details about prescribable drugs
   5. Note: You may need to also set `--local-infile=1` on the mysql commands to enable RRF import on the client side
   6. Run the sh or bat file to import the RXNorm files into your database
   7. Upon successful import, you may delete this directory and zip file
-- From your newly-created database, enter the following commands to create a required `id` column that does not exist in the tables as imported. Prisma will not run until these are added:
+- From your newly-created database, enter the following commands to create a required `id` column that does not exist in the tables as imported. TypeORM will not run until these are added:
   - ``ALTER TABLE `RXNCONSO` ADD `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST;``
   - ``ALTER TABLE `RXNREL` ADD `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST;``
   - ``ALTER TABLE `RXNSAT` ADD `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST;``
