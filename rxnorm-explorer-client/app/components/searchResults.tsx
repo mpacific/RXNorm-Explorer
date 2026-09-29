@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import ErrorMessage from './error';
 import SearchResultsList from './searchResultsList';
-import { Drug } from '../../../rxnorm-explorer-server/types/drug';
+import { SearchResult } from '../types/searchResult';
 import { SortFields } from '../types/sortFields';
 import { Cursor } from '../types/cursor';
 
@@ -11,8 +11,8 @@ const fetchSearchResults = async (
   sortField: string,
   sortDirection: string
 ): Promise<{
-  searchResults: Drug[];
-  totalResults: number;
+  searchResults: SearchResult[];
+  totalResults?: number;
 } | null> => {
   // Cursor values are drug names, so they have to be encoded rather than
   // interpolated straight into the query string.
@@ -44,7 +44,9 @@ export default function SearchResults(props: { searchTerm: string }) {
   const [sortDirection, setSortDirection] = useState('asc');
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
-  const [searchResults, setSearchResults] = useState<Drug[] | undefined>([]);
+  const [searchResults, setSearchResults] = useState<
+    SearchResult[] | undefined
+  >([]);
   const [totalCount, setTotalCount] = useState<number | undefined>(0);
 
   // A cursor is only meaningful for the sort it was taken under, so changing
@@ -61,7 +63,11 @@ export default function SearchResults(props: { searchTerm: string }) {
     fetchSearchResults(props.searchTerm, cursor, sortField, sortDirection)
       .then((data) => {
         setSearchResults(data?.searchResults);
-        setTotalCount(data?.totalResults);
+        // The server only counts on the first page, so later pages leave the
+        // total from that page in place.
+        if (data?.totalResults !== undefined) {
+          setTotalCount(data.totalResults);
+        }
       })
       .catch((error) => {
         setSearchError(error.message);

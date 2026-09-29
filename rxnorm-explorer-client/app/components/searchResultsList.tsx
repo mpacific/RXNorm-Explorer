@@ -6,14 +6,14 @@ import {
 } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Drug } from '../../../rxnorm-explorer-server/types/drug';
+import { SearchResult } from '../types/searchResult';
 import { SortFields } from '../types/sortFields';
 import { Cursor } from '../types/cursor';
 
 const FIRST_PAGE: Record<number, Cursor | null> = { 0: null };
 
 export default function SearchResultsList(props: {
-  searchResults: Drug[] | undefined;
+  searchResults: SearchResult[] | undefined;
   totalCount?: number;
   loading: boolean;
   sortField: SortFields;
@@ -56,12 +56,14 @@ export default function SearchResultsList(props: {
     },
   ];
 
-  const rows: Drug[] = (props.searchResults ?? []).map((searchResult) => ({
-    id: Number(searchResult.id),
-    RXCUI: searchResult.RXCUI,
-    TTY: searchResult.TTY,
-    STR: searchResult.STR,
-  }));
+  const rows: SearchResult[] = (props.searchResults ?? []).map(
+    (searchResult) => ({
+      id: Number(searchResult.id),
+      RXCUI: searchResult.RXCUI,
+      TTY: searchResult.TTY,
+      STR: searchResult.STR,
+    })
+  );
 
   const handlePaginationModelChange = (newPaginationModel: {
     page: number;

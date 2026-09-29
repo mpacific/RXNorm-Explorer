@@ -2,5 +2,6 @@ import { RXNCONSO } from '../src/db/entities/RXNCONSO.entity';
 
 export type SearchResults = {
   searchResults: RXNCONSO[];
-  totalResults: number;
+  // only sent with the first page; later pages keep the first page's total
+  totalResults?: number;
 };
