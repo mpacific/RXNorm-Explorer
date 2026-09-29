@@ -34,9 +34,13 @@ export class SearchService {
     // OR here silently swallows the filters that follow it.
     const matchesSearchTerm = new Brackets((qb) =>
       qb
-        .where('rxnconso.STR LIKE :searchTermLike', {
-          searchTermLike: `%${searchTerm}%`,
-        })
+        .where(
+          '(MATCH(rxnconso.STR) AGAINST(:searchTermSearch) OR rxnconso.STR LIKE :searchTermLike)',
+          {
+            searchTermSearch: `${searchTerm}*`,
+            searchTermLike: `%${searchTerm}%`,
+          },
+        )
         .orWhere('rxnconso.RXCUI = :searchTermEqual', {
           searchTermEqual: searchTerm,
         })

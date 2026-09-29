@@ -6,6 +6,8 @@ import { SearchModule } from './search/search.module';
 import { DrugModule } from './drug/drug.module';
 import { ConfigModule } from '@nestjs/config';
 import { dataSourceOptions } from './db/datasource';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -13,10 +15,24 @@ import { dataSourceOptions } from './db/datasource';
       isGlobal: true,
     }),
     TypeOrmModule.forRoot(dataSourceOptions),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: Number(process.env.THROTTLE_MS!),
+          limit: Number(process.env.THROTTLE_LIMIT!),
+        },
+      ],
+    }),
     SearchModule,
     DrugModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
