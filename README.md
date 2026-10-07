@@ -16,7 +16,7 @@ RxNorm Explorer is a simple search tool to view details about prescribable drugs
   2. Type `docker compose up -d` in the terminal to spin up the container
   3. Connect to the database using the root user, the password you entered into `.env`, and create a database. You should also create a new user/password for this new database.
   4. Type `SET GLOBAL local_infile = 1;` into your database while connected as root to allow RRF file imports
-- From [https://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html](https://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html), download the `Current Prescribable Content Monthly Release` zip file and unzip it.
+- From [https://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html](https://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html), download the `Current Prescribable Content Monthly Release` zip file and unzip it. From the unzipped directory:
   1. Enter the unzipped folder and copy all of the files in the `rrf/` directory to `scripts/mysql/`
   2. Within `scripts/mysql`, open either `populate_mysql_rxn.sh` or `populate_mysql_rxn.bat`
   3. Populate the variables up top with your newly-created credentials and correct path to the mysql executable
