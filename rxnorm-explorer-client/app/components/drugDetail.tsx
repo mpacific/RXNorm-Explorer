@@ -133,7 +133,7 @@ export default function DrugDetail(props: { drug: Drug }) {
               flex: 1,
               sortable: false,
               disableColumnMenu: true,
-              renderCell: (params: GridRenderCellParams<any>) =>
+              renderCell: (params: GridRenderCellParams<DetailRelatedDrug>) =>
                 params.row.c1_name,
             },
             {
@@ -147,7 +147,7 @@ export default function DrugDetail(props: { drug: Drug }) {
               flex: 1,
               sortable: false,
               disableColumnMenu: true,
-              renderCell: (params: GridRenderCellParams<any>) =>
+              renderCell: (params: GridRenderCellParams<DetailRelatedDrug>) =>
                 params.row.c2_name,
             },
           ]}

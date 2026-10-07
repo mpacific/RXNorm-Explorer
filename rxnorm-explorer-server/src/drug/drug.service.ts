@@ -25,13 +25,13 @@ export class DrugService {
         'rxnconso.STR AS STR',
       ])
       .where('rxnconso.id = :id', { id })
-      .leftJoin(
-        'RXNSAT',
-        'rxnsat',
-        'rxnconso.RXAUI = rxnsat.RXAUI AND rxnsat.ATN = "NDC"',
-      )
-      .addSelect(['GROUP_CONCAT(rxnsat.ATV) AS ATV'])
-      .groupBy('rxnconso.id')
+      // .leftJoin(
+      //   'RXNSAT',
+      //   'rxnsat',
+      //   'rxnconso.RXAUI = rxnsat.RXAUI AND rxnsat.ATN = "NDC"',
+      // )
+      // .addSelect(['GROUP_CONCAT(rxnsat.ATV) AS ATV'])
+      // .groupBy('rxnconso.id')
       .getRawOne();
 
     if (!drug) {

@@ -1,11 +1,7 @@
 import { TextField } from '@mui/material';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 export default function SearchBox(props: { searchTerm: string }) {
-  const searchParams: URLSearchParams = useSearchParams();
-  const params: {
-    set: (key: string, value: string) => void;
-  } = new URLSearchParams(searchParams.toString());
   const router = useRouter();
 
   return (
@@ -24,7 +20,10 @@ export default function SearchBox(props: { searchTerm: string }) {
         onKeyUp={(e: React.KeyboardEvent<HTMLDivElement>) => {
           const target = e.target as HTMLInputElement;
           if (e.key === 'Enter') {
-            params.set('search', target.value || '');
+            // Built from scratch rather than copied from the current URL: a new
+            // search carries nothing over, and reading useSearchParams() here
+            // would stop every page with a search box from being prerendered.
+            const params = new URLSearchParams({ search: target.value || '' });
             router.push(`/search?${params.toString()}`, { scroll: false });
           }
         }}

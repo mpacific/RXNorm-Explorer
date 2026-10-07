@@ -38,16 +38,27 @@ const fetchSearchResults = async (
   return searchResults.json();
 };
 
+type SearchResponse = {
+  request: string;
+  searchResults?: SearchResult[];
+  error?: string;
+};
+
 export default function SearchResults(props: { searchTerm: string }) {
   const [cursor, setCursor] = useState<Cursor | null>(null);
   const [sortField, setSortField] = useState<SortFields>('STR');
   const [sortDirection, setSortDirection] = useState('asc');
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState('');
-  const [searchResults, setSearchResults] = useState<
-    SearchResult[] | undefined
-  >([]);
+  const [response, setResponse] = useState<SearchResponse | null>(null);
   const [totalCount, setTotalCount] = useState<number | undefined>(0);
+
+  // Identifies what the current state is asking for, so each response can be
+  // matched to the request it answers.
+  const request = JSON.stringify([
+    props.searchTerm,
+    cursor,
+    sortField,
+    sortDirection,
+  ]);
 
   // A cursor is only meaningful for the sort it was taken under, so changing
   // the sort has to send us back to the first page.
@@ -58,33 +69,47 @@ export default function SearchResults(props: { searchTerm: string }) {
   };
 
   useEffect(() => {
-    setSearchLoading(true);
+    // Paging quickly can leave an older request still in flight, and it must
+    // not overwrite the newer page when it lands.
+    let ignore = false;
 
     fetchSearchResults(props.searchTerm, cursor, sortField, sortDirection)
       .then((data) => {
-        setSearchResults(data?.searchResults);
+        if (ignore) {
+          return;
+        }
+
         // The server only counts on the first page, so later pages leave the
         // total from that page in place.
         if (data?.totalResults !== undefined) {
           setTotalCount(data.totalResults);
         }
+        setResponse({ request, searchResults: data?.searchResults });
       })
       .catch((error) => {
-        setSearchError(error.message);
-      })
-      .finally(() => {
-        setSearchLoading(false);
+        if (!ignore) {
+          setResponse({ request, error: error.message });
+        }
       });
-  }, [props.searchTerm, cursor, sortField, sortDirection]);
+
+    return () => {
+      ignore = true;
+    };
+  }, [request, props.searchTerm, cursor, sortField, sortDirection]);
+
+  // Loading until the latest response is for the current request. Derived
+  // rather than set when the request starts; the grid keeps showing the
+  // previous page's rows under its loading overlay meanwhile.
+  const loading = response?.request !== request;
 
   return (
     <div>
-      {searchError && <ErrorMessage searchError={searchError} />}
-      {!searchError && (
+      {response?.error && <ErrorMessage searchError={response.error} />}
+      {!response?.error && (
         <SearchResultsList
-          searchResults={searchResults}
+          searchResults={response?.searchResults}
           totalCount={totalCount}
-          loading={searchLoading}
+          loading={loading}
           sortField={sortField}
           sortDirection={sortDirection}
           setCursor={setCursor}

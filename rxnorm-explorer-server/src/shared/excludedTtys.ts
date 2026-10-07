@@ -1,1 +1,1 @@
-export const EXCLUDED_TTYS = ['DP', 'SU', 'TMSY', 'SY'];
+export const EXCLUDED_TTYS = ['DP', 'SU', 'TMSY', 'SY', 'DF', 'DFG'];

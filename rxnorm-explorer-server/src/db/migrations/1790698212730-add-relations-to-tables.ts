@@ -12,7 +12,7 @@ export class AddRelationsToTables1790698212730 implements MigrationInterface {
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query('SET FOREIGN_KEY_CHECKS=0');
     await queryRunner.query(
-      'ALTER TABLE `RXNSAT` DROP FOREIGN KEY `RXNREL_RXAUI_fkey`',
+      'ALTER TABLE `RXNSAT` DROP FOREIGN KEY `RXNSAT_RXAUI_fkey`',
     );
     await queryRunner.query('SET FOREIGN_KEY_CHECKS=1');
   }

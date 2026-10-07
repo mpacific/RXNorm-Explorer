@@ -11,6 +11,13 @@ async function bootstrap() {
     );
   }
 
+  if (!process.env.THROTTLE_MS || !process.env.THROTTLE_LIMIT) {
+    throw new HttpException(
+      'Throttling not configured properly',
+      HttpStatus.INTERNAL_SERVER_ERROR,
+    );
+  }
+
   const app = await NestFactory.create(AppModule);
   app.enableCors({
     origin: process.env.CORS_ALLOWED?.split(','),

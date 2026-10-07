@@ -18,33 +18,47 @@ const getDrug = async (drugId: number): Promise<Drug | null> => {
   return response.json();
 };
 
+type DrugResponse = {
+  slug: string;
+  drug?: Drug | null;
+  error?: string;
+};
+
 export default function DrugDetailPage() {
-  const params = useParams();
-  const drugId = Number(params.slug);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [drug, setDrug] = useState<Drug | null>(null);
+  const slug = String(useParams().slug);
+  const [response, setResponse] = useState<DrugResponse | null>(null);
 
   useEffect(() => {
-    setLoading(true);
+    // Linking from one drug to another reuses this component, so a slow
+    // response for the previous drug must not overwrite the new one.
+    let ignore = false;
 
-    getDrug(drugId)
-      .then((data) => {
-        setDrug(data);
+    getDrug(Number(slug))
+      .then((drug) => {
+        if (!ignore) {
+          setResponse({ slug, drug });
+        }
       })
       .catch((error) => {
-        setError(error);
-      })
-      .finally(() => {
-        setLoading(false);
+        if (!ignore) {
+          setResponse({ slug, error: error.message });
+        }
       });
-  }, [drugId]);
+
+    return () => {
+      ignore = true;
+    };
+  }, [slug]);
+
+  // Loading until there's a response for this drug. Derived rather than set
+  // when the request starts, which also drops the previous drug's error.
+  const current = response?.slug === slug ? response : null;
 
   return (
     <div>
-      {loading && <LoadingMessage />}
-      {error && <ErrorMessage searchError={error.message} />}
-      {!loading && !error && drug && <DrugDetail drug={drug} />}
+      {!current && <LoadingMessage />}
+      {current?.error && <ErrorMessage searchError={current.error} />}
+      {current?.drug && <DrugDetail drug={current.drug} />}
     </div>
   );
 }
