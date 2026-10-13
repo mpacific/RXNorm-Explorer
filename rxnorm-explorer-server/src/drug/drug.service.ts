@@ -5,6 +5,7 @@ import { RXNCONSO } from '../db/entities/RXNCONSO.entity';
 import { Repository } from 'typeorm';
 import { RXNREL } from '../db/entities/RXNREL.entity';
 import { EXCLUDED_TTYS } from '../shared/excludedTtys';
+import { RXNSAT } from '../db/entities/RXNSAT.entity';
 
 @Injectable()
 export class DrugService {
@@ -13,6 +14,8 @@ export class DrugService {
     private rxnconsoRepository: Repository<RXNCONSO>,
     @InjectRepository(RXNREL)
     private rxnrelRepository: Repository<RXNREL>,
+    @InjectRepository(RXNSAT)
+    private rxnsatRepository: Repository<RXNSAT>,
   ) {}
 
   async getDrug(id: number): Promise<Drug | null> {
@@ -20,23 +23,31 @@ export class DrugService {
       .createQueryBuilder('rxnconso')
       .select([
         'rxnconso.id AS id',
+        'rxnconso.RXAUI AS RXAUI',
         'rxnconso.RXCUI AS RXCUI',
         'rxnconso.TTY AS TTY',
         'rxnconso.STR AS STR',
       ])
       .where('rxnconso.id = :id', { id })
-      // .leftJoin(
-      //   'RXNSAT',
-      //   'rxnsat',
-      //   'rxnconso.RXAUI = rxnsat.RXAUI AND rxnsat.ATN = "NDC"',
-      // )
-      // .addSelect(['GROUP_CONCAT(rxnsat.ATV) AS ATV'])
-      // .groupBy('rxnconso.id')
       .getRawOne();
 
     if (!drug) {
       return null;
     }
+
+    const NDCs:
+      | {
+          ATV: string;
+        }[]
+      | [] = await this.rxnsatRepository
+      .createQueryBuilder('rxnsat')
+      .select(['rxnsat.ATV AS ATV'])
+      .where('rxnsat.RXAUI = :drugAUI AND rxnsat.ATN = "NDC"', {
+        drugAUI: drug.RXAUI,
+      })
+      .getRawMany();
+
+    drug.ATV = NDCs.map((NDC) => NDC.ATV).join(', ');
 
     drug.RelatedDrugs = await this.rxnrelRepository
       .createQueryBuilder('r')

@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import helmet from 'helmet';
 
 async function bootstrap() {
   if (!process.env.CORS_ALLOWED) {
@@ -19,6 +20,7 @@ async function bootstrap() {
   }
 
   const app = await NestFactory.create(AppModule);
+  app.use(helmet());
   app.enableCors({
     origin: process.env.CORS_ALLOWED?.split(','),
     credentials: true,

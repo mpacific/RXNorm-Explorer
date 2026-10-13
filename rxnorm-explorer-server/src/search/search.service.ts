@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RXNCONSO } from '../db/entities/RXNCONSO.entity';
 import { Brackets, Repository } from 'typeorm';
@@ -34,6 +34,12 @@ export class SearchService {
     const direction = sortDirection?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
     const term = (searchTerm ?? '').trim();
+    if (!term) {
+      throw new HttpException(
+        'Search term is required',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
 
     // Each way a row can match is its own lookup, UNIONed into a set of ids
     // that the TTY filter, sort and paging then run against. Keep them apart:

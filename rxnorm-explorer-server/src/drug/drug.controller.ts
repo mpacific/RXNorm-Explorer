@@ -19,6 +19,10 @@ export class DrugController {
     @Param('id') id: number,
     @Res() res: Response,
   ): Promise<Response> {
+    if (!id) {
+      throw new HttpException('ID is required', HttpStatus.BAD_REQUEST);
+    }
+
     const drug: Drug | null = await this.drugService.getDrug(id);
 
     if (!drug) {
