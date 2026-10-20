@@ -1,10 +1,25 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  type INestApplication,
+} from '@nestjs/common';
 import helmet from 'helmet';
 
-async function bootstrap() {
+// Split out from bootstrap so the e2e tests can apply the same middleware to
+// the app they build.
+export function configureApp(app: INestApplication): INestApplication {
+  app.use(helmet());
+  app.enableCors({
+    origin: process.env.CORS_ALLOWED?.split(','),
+    credentials: true,
+  });
+  return app;
+}
+
+export async function bootstrap() {
   if (!process.env.CORS_ALLOWED) {
     throw new HttpException(
       'CORS not configured properly',
@@ -20,11 +35,11 @@ async function bootstrap() {
   }
 
   const app = await NestFactory.create(AppModule);
-  app.use(helmet());
-  app.enableCors({
-    origin: process.env.CORS_ALLOWED?.split(','),
-    credentials: true,
-  });
+  configureApp(app);
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
+
+// Only start the server when run directly, not when a test imports this file.
+if (require.main === module) {
+  bootstrap();
+}

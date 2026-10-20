@@ -35,15 +35,15 @@ export class AddIndexesToTables1789068330590 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX ON RXNCONSO RXNCONSO_RXCUI_idx`);
-    await queryRunner.query(`DROP INDEX ON RXNCONSO RXNCONSO_TTY_idx`);
-    await queryRunner.query(`DROP INDEX ON RXNCONSO RXNCONSO_RXAUI_key`);
-    await queryRunner.query(`DROP INDEX ON RXNCONSO RXNCONSO_STR_idx`);
-    await queryRunner.query(`DROP INDEX ON RXNCONSO RXNCONSO_STR_idx2`);
-    await queryRunner.query(`DROP INDEX ON RXNREL RXNREL_RXCUI1_idx`);
-    await queryRunner.query(`DROP INDEX ON RXNREL RXNREL_RXCUI2_idx`);
-    await queryRunner.query(`DROP INDEX ON RXNSAT RXNSAT_RXAUI_idx`);
-    await queryRunner.query(`DROP INDEX ON RXNSAT RXNSAT_ATN_idx`);
-    await queryRunner.query(`DROP INDEX ON RXNSAT RXNSAT_ATV_idx`);
+    await queryRunner.query('DROP INDEX `RXNCONSO_RXCUI_idx` ON `RXNCONSO`');
+    await queryRunner.query('DROP INDEX `RXNCONSO_TTY_idx` ON `RXNCONSO`');
+    await queryRunner.query('DROP INDEX `RXNCONSO_RXAUI_key` ON `RXNCONSO`');
+    await queryRunner.query('DROP INDEX `RXNCONSO_STR_idx` ON `RXNCONSO`');
+    await queryRunner.query('DROP INDEX `RXNCONSO_STR_idx2` ON `RXNCONSO`');
+    await queryRunner.query('DROP INDEX `RXNREL_RXCUI1_idx` ON `RXNREL`');
+    await queryRunner.query('DROP INDEX `RXNREL_RXCUI2_idx` ON `RXNREL`');
+    await queryRunner.query('DROP INDEX `RXNSAT_RXAUI_idx` ON `RXNSAT`');
+    await queryRunner.query('DROP INDEX `RXNSAT_ATN_idx` ON `RXNSAT`');
+    await queryRunner.query('DROP INDEX `RXNSAT_ATV_idx` ON `RXNSAT`');
   }
 }

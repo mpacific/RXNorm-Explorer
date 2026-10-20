@@ -86,8 +86,11 @@ export class SearchService {
     // Keyset pagination. STR, RXCUI and TTY are all non-unique, so the id
     // breaks ties -- without it a page boundary landing in the middle of a run
     // of equal values skips every remaining row in that run.
+    // Only whole digits count as an id: Number() would read '' or ' ' as 0
+    // and '1e3' as 1000.
+    const hasCursorId = /^\d+$/.test(cursorId ?? '');
+    const isFirstPage = !(cursor && hasCursorId);
     const afterCursor = Number(cursorId);
-    const isFirstPage = !(cursor && Number.isInteger(afterCursor));
     if (!isFirstPage) {
       const comparison = direction === 'ASC' ? '>' : '<';
 

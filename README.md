@@ -29,3 +29,11 @@ RxNorm Explorer is a simple search tool to view details about prescribable drugs
 - From the `rxnorm-explorer-client` directory:
   1. Copy `.env.example` to `.env` and populate the variables. The API URL is address to the server API, ie `http://localhost:6109/`
 - From both `rxnorm-explorer-server` and `rxnorm-explorer-client` type `npm run dev` in the terminal to start the app.
+
+## Testing
+
+- Server (`rxnorm-explorer-server`):
+  - `npm test` runs the unit tests, which mock the database. `npm run test:cov` adds a coverage report.
+  - `npm run test:e2e` runs the end-to-end tests against the database configured in `.env`, so it needs the RxNorm data loaded and the migrations run. The tests look up the drugs they use, so any monthly release works.
+- Client (`rxnorm-explorer-client`):
+  - `npm test` runs the component and page tests (Vitest with React Testing Library). `npm run test:watch` re-runs them on change, and `npm run test:cov` adds a coverage report.
