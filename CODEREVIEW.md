@@ -99,7 +99,9 @@ There is no global `ValidationPipe` and no DTOs. Controller parameter types are 
 
 `main.ts:24-27`. The API uses no cookies or auth, so `Access-Control-Allow-Credentials` only widens what a whitelisted origin can do. **Fix:** remove `credentials: true`.
 
-### S7 — Low — The client sets no security headers
+### ~~S7 — Low — The client sets no security headers~~ ✅ Fixed
+
+> **Fixed** — on `fix/s7-client-security-headers`. `next.config.ts` `headers()` now sends a CSP (with `connect-src` limited to `'self'` and the `NEXT_PUBLIC_API_URL` origin, and `frame-ancestors 'none'`), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` and `X-Frame-Options: DENY`. This is the "without nonces" CSP from Next's guide, because nonces would force every page to render dynamically. `'unsafe-inline'` stays for Next's hydration scripts and Emotion's styles. Checked with `next start`; **not yet exercised in a real browser.**
 
 `next.config.ts` has no `headers()`. **Fix:** add, at minimum:
 - `Content-Security-Policy`, with `connect-src` limited to the API origin
