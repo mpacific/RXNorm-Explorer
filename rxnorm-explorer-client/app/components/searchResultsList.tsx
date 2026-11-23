@@ -29,7 +29,7 @@ export default function SearchResultsList(props: {
   ];
 
   const router = useRouter();
-  const [paginationModel, setPagionationModel] = useState({
+  const [paginationModel, setPaginationModel] = useState({
     page: 0,
     pageSize: 50,
   });
@@ -59,6 +59,7 @@ export default function SearchResultsList(props: {
   const rows: SearchResult[] = (props.searchResults ?? []).map(
     (searchResult) => ({
       id: Number(searchResult.id),
+      RXAUI: searchResult.RXAUI,
       RXCUI: searchResult.RXCUI,
       TTY: searchResult.TTY,
       STR: searchResult.STR,
@@ -92,7 +93,7 @@ export default function SearchResultsList(props: {
       });
     }
 
-    setPagionationModel(newPaginationModel);
+    setPaginationModel(newPaginationModel);
   };
 
   const handleSortingModelChange = (newSortingModel: GridSortModel) => {
@@ -118,7 +119,7 @@ export default function SearchResultsList(props: {
     // The cursors we collected describe the old ordering, so drop them and
     // start again from the first page.
     setPageCursors(FIRST_PAGE);
-    setPagionationModel({ ...paginationModel, page: 0 });
+    setPaginationModel({ ...paginationModel, page: 0 });
   };
 
   return (
@@ -126,8 +127,8 @@ export default function SearchResultsList(props: {
       pageSizeOptions={[50]}
       rows={rows}
       columns={columns}
-      onRowClick={(params: GridRowParams) => {
-        router.push(`/drug/${params.id}`);
+      onRowClick={(params: GridRowParams<SearchResult>) => {
+        router.push(`/drug/${params.row.RXAUI}`);
       }}
       rowCount={props.totalCount || 0}
       rowSelection={false}

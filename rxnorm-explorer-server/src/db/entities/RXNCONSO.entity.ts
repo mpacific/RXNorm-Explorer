@@ -7,66 +7,70 @@ import {
 } from 'typeorm';
 import { RXNSAT } from './RXNSAT.entity';
 
-@Entity()
+// A read-only mapping of the RXNCONSO table as the NLM load scripts create it,
+// plus the id, indexes and keys from the migrations in ../migrations. Lengths
+// and index names match the real schema, but the schema itself is owned by
+// those scripts and hand-written migrations: never run
+// \`typeorm migration:generate\` or \`synchronize\` against these entities.
+@Entity('RXNCONSO')
+@Index('RXNCONSO_RXAUI_key', ['RXAUI'], { unique: true })
 export class RXNCONSO {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ unsigned: true })
   id: number;
-
-  @Column({ nullable: false })
-  @Index()
+  @Index('RXNCONSO_RXCUI_idx')
+  @Column({ length: 8, nullable: false })
   RXCUI: string;
 
-  @Column({ nullable: false })
+  @Column({ length: 3, nullable: false, default: 'ENG' })
   LAT: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 1, nullable: true })
   TS: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 8, nullable: true })
   LUI: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 3, nullable: true })
   STT: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 8, nullable: true })
   SUI: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 1, nullable: true })
   ISPREF: string;
 
-  @Column({ nullable: false, unique: true })
+  @Column({ length: 8, nullable: false })
   RXAUI: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 50, nullable: true })
   SAUI: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 50, nullable: true })
   SCUI: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 50, nullable: true })
   SDUI: string;
 
-  @Column({ nullable: false })
+  @Column({ length: 20, nullable: false })
   SAB: string;
 
-  @Column({ nullable: false })
-  @Index()
+  @Index('RXNCONSO_TTY_idx')
+  @Column({ length: 20, nullable: false })
   TTY: string;
 
-  @Column({ nullable: false })
+  @Column({ length: 50, nullable: false })
   CODE: string;
 
-  @Column({ nullable: false })
-  @Index()
+  @Column({ length: 3000, nullable: false })
   STR: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 10, nullable: true })
   SRL: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 1, nullable: true })
   SUPPRESS: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 50, nullable: true })
   CVF: string;
 
   @OneToMany(() => RXNSAT, (rxnsat) => rxnsat.RXNCONSO)
