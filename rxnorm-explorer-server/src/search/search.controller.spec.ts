@@ -4,7 +4,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { SearchController } from './search.controller';
 import { SearchService } from './search.service';
-import { SearchResults } from '../../types/searchResults';
+import { SearchResults } from '../types/searchResults';
 
 describe('SearchController', () => {
   let app: INestApplication<App>;

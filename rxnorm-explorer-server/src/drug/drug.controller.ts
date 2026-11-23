@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { DrugService } from './drug.service';
-import { Drug } from '../../types/drug';
+import { Drug } from '../types/drug';
 
 @Controller('drug')
 export class DrugController {

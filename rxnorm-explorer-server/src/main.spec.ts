@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { HttpException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { bootstrap, configureApp } from './main';
 import { AppModule } from './app.module';
 
@@ -8,29 +8,29 @@ import { AppModule } from './app.module';
 jest.mock('./app.module', () => ({ AppModule: class AppModule {} }));
 
 describe('main', () => {
-  const env = process.env;
+  // What the validated ConfigService would hold
+  const settings: Record<string, unknown> = {
+    CORS_ALLOWED: 'http://localhost:3000,https://rxnorm.example',
+    PORT: 6109,
+  };
 
   const mockApp = () => ({
     use: jest.fn(),
     enableCors: jest.fn(),
     listen: jest.fn().mockResolvedValue(undefined),
+    get: jest.fn((token: unknown) => {
+      expect(token).toBe(ConfigService);
+      return { getOrThrow: (key: string) => settings[key] };
+    }),
   });
   let app: ReturnType<typeof mockApp>;
 
   beforeEach(() => {
-    process.env = {
-      ...env,
-      CORS_ALLOWED: 'http://localhost:3000,https://rxnorm.example',
-      THROTTLE_MS: '5000',
-      THROTTLE_LIMIT: '10',
-      PORT: '6109',
-    };
     app = mockApp();
     jest.spyOn(NestFactory, 'create').mockResolvedValue(app as never);
   });
 
   afterEach(() => {
-    process.env = env;
     jest.restoreAllMocks();
   });
 
@@ -64,28 +64,20 @@ describe('main', () => {
       expect(NestFactory.create).toHaveBeenCalledWith(AppModule);
       expect(app.use).toHaveBeenCalled();
       expect(app.enableCors).toHaveBeenCalled();
-      expect(app.listen).toHaveBeenCalledWith('6109');
+      expect(app.listen).toHaveBeenCalledWith(6109);
     });
 
-    it('falls back to port 3000', async () => {
-      delete process.env.PORT;
-
-      await bootstrap();
-
-      expect(app.listen).toHaveBeenCalledWith(3000);
-    });
-
-    it.each([
-      ['CORS_ALLOWED', 'CORS not configured properly'],
-      ['THROTTLE_MS', 'Throttling not configured properly'],
-      ['THROTTLE_LIMIT', 'Throttling not configured properly'],
-    ])('refuses to start without %s', async (variable, message) => {
-      delete process.env[variable];
+    // Missing or malformed settings are caught by ConfigModule's validation
+    // (see config/env.validation.spec.ts), which runs inside create()
+    it('fails when the app cannot be created', async () => {
+      jest
+        .spyOn(NestFactory, 'create')
+        .mockRejectedValue(new Error('Invalid environment configuration'));
 
       await expect(bootstrap()).rejects.toThrow(
-        new HttpException(message, 500),
+        'Invalid environment configuration',
       );
-      expect(NestFactory.create).not.toHaveBeenCalled();
+      expect(app.listen).not.toHaveBeenCalled();
     });
   });
 });
