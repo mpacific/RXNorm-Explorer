@@ -18,18 +18,20 @@ The core of the app is in good shape. SQL is parameterized. The one value interp
 
 The main problems are around the code rather than in it:
 
-1. **Dependencies have known vulnerabilities**, including a critical advisory against the installed Next.js (16.3.4).
-2. **The API connects to MySQL as `root`**, and `local_infile` is still on globally.
-3. **`npm run start:prod` is broken.** The build writes `dist/src/main.js`, but the script runs `dist/main`.
+1. ~~**Dependencies have known vulnerabilities**, including a critical advisory against the installed Next.js (16.3.4).~~ ✅
+2. ~~**The API connects to MySQL as `root`**, and `local_infile` is still on globally.~~ ✅ (in the repo; the server change is manual)
+3. ~~**`npm run start:prod` is broken.** The build writes `dist/src/main.js`, but the script runs `dist/main`.~~ ✅
 4. **4 of the 5 unit test suites fail**, and the only e2e test checks the scaffold's "Hello World".
-5. **There is no request validation.** Malformed query strings cause 500s, and `/drug/127abc` returns drug 127.
+5. ~~**There is no request validation.** Malformed query strings cause 500s, and `/drug/127abc` returns drug 127.~~ ✅
 6. **Drug URLs use a surrogate `id`** that the migration assigns. A reload of the RxNorm data will change or remove these ids.
 
 ---
 
 ## 1. Security
 
-### S1 — High — Dependencies with known vulnerabilities (both packages)
+### ~~S1 — High — Dependencies with known vulnerabilities (both packages)~~ ✅ Fixed
+
+> **Fixed** on `fix/s1-dependency-audit`: `npm audit fix` in both packages (Next is now 16.4.6, and `sharp` is 0.35.5). `npm audit --omit=dev` reports 0 vulnerabilities in both. 19 moderate dev-only advisories (glob/minimatch under the Nest CLI and Jest) are left, because fixing them needs breaking `--force` upgrades. The CI audit step is covered under D2.
 
 `npm audit --omit=dev` output:
 
@@ -43,7 +45,9 @@ The main problems are around the code rather than in it:
 
 **Fix:** run `npm audit fix` in both packages, re-run the build and tests, and commit the lockfiles. Add `npm audit --omit=dev --audit-level=high` to CI (see D2).
 
-### S2 — High — The API connects to the database as `root`
+### ~~S2 — High — The API connects to the database as `root`~~ ✅ Fixed
+
+> **Fixed** — on `fix/s2-s3-db-privileges`. The README now walks through creating a `SELECT`-only `rxnorm_app` account for the API and a separate `rxnorm_migrate` account. `datasource.ts` makes the migration CLI connect as `MIGRATION_DATABASE_USER`/`MIGRATION_DATABASE_PASSWORD` when they are set. **Still to do by hand:** create the accounts on your MySQL server and point `.env` at `rxnorm_app`. (I didn't change grants on your database.)
 
 `SHOW GRANTS` for the configured `DATABASE_USER` returns `GRANT ALL ... ON *.* TO root@% WITH GRANT OPTION`, plus every dynamic privilege. The API only ever reads. Any future bug in a query path (or a compromised dependency) would therefore run with full server control. That includes `FILE`, which together with `local_infile` can read files from the host.
 
@@ -53,13 +57,17 @@ The README (`README.md:17`) does say to create a separate user, but nothing enfo
 - An app user with `GRANT SELECT ON rxnorm.* TO 'rxnorm_app'@'%'`, used by the API.
 - A migration user with `SELECT, ALTER, INDEX, REFERENCES` on the same schema, used only by `npm run migration:*`. TypeORM's migration CLI could read it from separate env vars such as `MIGRATION_DATABASE_USER`.
 
-### S3 — Medium — `local_infile` left enabled globally
+### ~~S3 — Medium — `local_infile` left enabled globally~~ ✅ Fixed
+
+> **Fixed** — on `fix/s2-s3-db-privileges`. The README now has a step to run `SET GLOBAL local_infile = 0;` after the import. **Still to do by hand:** run it on your server, where `@@local_infile` is still `1`.
 
 `SELECT @@local_infile` returns `1`. The README (`README.md:18`) tells you to turn it on for the RRF import, but never to turn it off again. When it is on, a client can ask the server to load local files, which is a known data-exfiltration path for malicious or compromised clients.
 
 **Fix:** add a step to the README to run `SET GLOBAL local_infile = 0;` after the import. Better still, pass `--local-infile=1` only on the import client and leave the server setting off.
 
-### S4 — Medium — No input validation on request parameters
+### ~~S4 — Medium — No input validation on request parameters~~ ✅ Fixed
+
+> **Fixed** — on `fix/s4-request-validation`. A global `ValidationPipe({ whitelist, transform })` is registered in `configureApp`, and `SearchQueryDto` caps lengths and checks `sortField`/`sortDirection` with `@IsIn` and `cursorId` as digits. Repeated keys, unknown sort fields and `/drug/127abc` now get a 400. **Two differences from the suggestion:** (1) an unknown `sortField` is now a 400 instead of silently sorting by name. (2) The drug id is validated with a `DrugParamsDto` rather than `ParseIntPipe`, because the global pipe runs first and turned `1e3` into `1000` before `ParseIntPipe` saw it.
 
 There is no global `ValidationPipe` and no DTOs. Controller parameter types are not enforced at runtime.
 
@@ -75,7 +83,9 @@ There is no global `ValidationPipe` and no DTOs. Controller parameter types are 
 - Add a `SearchQueryDto` (`@IsString() @Length(1, 200) searchTerm`, `@IsIn(['STR','RXCUI','TTY']) sortField`, `@IsIn(['asc','desc','ASC','DESC']) sortDirection`, `@IsOptional() @IsString() cursor`, `@IsOptional() @IsInt() cursorId`).
 - Use `@Param('id', ParseIntPipe)` in the drug controller.
 
-### S5 — Low — Rate limiting is per IP with no proxy awareness, and its config isn't validated
+### ~~S5 — Low — Rate limiting is per IP with no proxy awareness, and its config isn't validated~~ 🟡 Partly fixed
+
+> **Partly fixed** — on `fix/q4-config-validation`: `THROTTLE_MS`/`THROTTLE_LIMIT` must now be positive integers, so `THROTTLE_MS=60s` stops startup. **Not done:** proxy-aware keying and Redis storage. There is no proxy or second instance yet, so these stay as notes for when there is.
 
 - `ThrottlerGuard` keys on `req.ip`. Behind a reverse proxy or load balancer, every user shares the proxy's IP, so one heavy user throttles everyone. If `trust proxy` is turned on later, configure it narrowly (and patch `proxy-addr`, see S1).
 - `app.module.ts:21-22`: `Number(process.env.THROTTLE_MS!)` becomes `NaN` for a value like `"60s"`. `main.ts:15` only checks that the value is present, not that it's a number.
@@ -107,7 +117,9 @@ There is no global `ValidationPipe` and no DTOs. Controller parameter types are 
 
 ## 2. Correctness and bugs
 
-### C1 — High — `npm run start:prod` points at a file that doesn't exist
+### ~~C1 — High — `npm run start:prod` points at a file that doesn't exist~~ ✅ Fixed
+
+> **Fixed** — on `fix/c1-start-prod` (option a): `types/` moved to `src/types/`, and the server and client imports were updated. `nest build` now writes `dist/main.js`. `npm run start:prod` starts, and `/search` and `/drug/127` were checked against the local DB.
 
 `package.json:15` runs `node dist/main`. Because `types/` lives outside `src/` and is compiled too, `tsc` raises the root to the project directory and writes **`dist/src/main.js`** (verified: `dist/` contains only `src/`, `types/` and the tsbuildinfo files). The production start command therefore fails with `Cannot find module`.
 
@@ -171,7 +183,9 @@ The server joins NDCs with `', '` (`drug.service.ts:50`). The client splits on `
 
 `1790698212730-add-relations-to-tables.ts:5-9` turns off `FOREIGN_KEY_CHECKS` around `ADD CONSTRAINT`, so existing orphan rows aren't checked. If the statement fails, checks stay off on that pooled connection. `ON DELETE SET NULL ON UPDATE CASCADE` also has little purpose on read-only reference data. **Fix:** check for orphans first (`SELECT COUNT(*) FROM RXNSAT s LEFT JOIN RXNCONSO c USING (RXAUI) WHERE c.id IS NULL`) and add the FK with checks on. Or drop the FK, since nothing relies on it at runtime.
 
-### C11 — Low — Bootstrap errors are unhandled
+### ~~C11 — Low — Bootstrap errors are unhandled~~ ✅ Fixed
+
+> **Fixed** — on `fix/q4-config-validation`. The `HttpException` startup checks are gone, because config validation covers them. `bootstrap()` now ends in `.catch(…process.exit(1))`.
 
 `main.ts:30` calls `bootstrap()` as a floating promise (this is the only ESLint warning). On top of that, `main.ts:9-19` throws `HttpException`s, which are meant for HTTP responses, during startup. **Fix:** use `bootstrap().catch((e) => { console.error(e); process.exit(1); })`, throw plain `Error`s, or better, move the checks into config validation (Q4).
 
@@ -238,7 +252,9 @@ The server-component approach also makes the page show content on first load and
 
 `drug.controller.ts:20` and `search.controller.ts:17` take the Express `res` and call `res.status(200).json(...)`. That opts out of interceptors, serialization and `@Header()`/`@HttpCode()` decorators, and it's harder to test. **Fix:** `return drug;` / `return drugs;`. The status is 200 by default.
 
-### Q2 — Shared types reach across package boundaries
+### ~~Q2 — Shared types reach across package boundaries~~ 🟡 Partly fixed
+
+> **Partly fixed** — on `fix/c1-start-prod`: `SearchResults` is now a plain type (`Pick<Drug, …>`) instead of the TypeORM entity, so the API contract no longer depends on the persistence model. **Not done:** the client still imports the types through `../rxnorm-explorer-server/src/types`. A shared workspace package or OpenAPI-generated types is a bigger restructure, so I left it for you to decide.
 
 The client imports `../../../rxnorm-explorer-server/types/drug` (`drugDetail.tsx:11,13`, `drug/[slug]/page.tsx:6`, `types/searchResult.ts:1`). On the server, `types/searchResults.ts:1` imports the TypeORM entity class, so the "API contract" is the persistence model. That coupling is also what causes C1.
 
@@ -251,7 +267,9 @@ The client imports `../../../rxnorm-explorer-server/types/drug` (`drugDetail.tsx
 - Client `package.json`: `rxjs` is unused. `dotenv` is only imported in `layout.tsx:1`, and Next already loads `.env*` itself, so remove both.
 - `@types/node` is `^20` in the client while the project requires Node 24.
 
-### Q4 — Validate config once, at startup
+### ~~Q4 — Validate config once, at startup~~ ✅ Fixed
+
+> **Fixed** — on `fix/q4-config-validation`. `ConfigModule.forRoot({ validate })` checks every variable against a class-validator schema (`src/config/env.validation.ts`) and converts numbers. TypeORM and the throttler use `forRootAsync` with the validated `ConfigService`. The options builder (`src/db/dataSourceOptions.ts`) is shared with the migration CLI.
 
 `datasource.ts:9` creates a `ConfigService` by hand. `getOrThrow<number>('DATABASE_PORT')` actually returns a string. The throttle and CORS checks live in `main.ts`. **Fix:** use `ConfigModule.forRoot({ validate })` with a schema (class-validator or zod) covering every variable, including numeric `THROTTLE_*`, `PORT` and `DATABASE_PORT`. Then read typed values from `ConfigService` everywhere, using `ThrottlerModule.forRootAsync` and `TypeOrmModule.forRootAsync`.
 
@@ -305,10 +323,10 @@ Add a workflow that runs, for both packages: `npm ci`, `lint`, `tsc --noEmit`, `
 
 | # | Item | Effort |
 |---|---|---|
-| 1 | S1: `npm audit fix` in both packages | Minutes |
-| 2 | S2 + S3: read-only app DB user; turn `local_infile` off | Minutes |
-| 3 | C1: fix `start:prod` (move `types/` under `src/`) | Small |
-| 4 | S4: `ValidationPipe` + DTOs + `ParseIntPipe` | Small |
+| 1 | ~~S1: `npm audit fix` in both packages~~ ✅ | Minutes |
+| 2 | ~~S2 + S3: read-only app DB user; turn `local_infile` off~~ ✅ | Minutes |
+| 3 | ~~C1: fix `start:prod` (move `types/` under `src/`)~~ ✅ | Small |
+| 4 | ~~S4: `ValidationPipe` + DTOs + `ParseIntPipe`~~ ✅ | Small |
 | 5 | C2: fix the migration `down()` SQL | Minutes |
 | 6 | C4 + D2: get tests passing, add SearchService tests and CI | Medium |
 | 7 | D1: commit the docker compose setup | Small |

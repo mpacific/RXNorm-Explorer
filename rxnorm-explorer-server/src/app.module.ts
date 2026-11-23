@@ -4,24 +4,32 @@ import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SearchModule } from './search/search.module';
 import { DrugModule } from './drug/drug.module';
-import { ConfigModule } from '@nestjs/config';
-import { dataSourceOptions } from './db/datasource';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { buildDataSourceOptions } from './db/dataSourceOptions';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { validate } from './config/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validate,
     }),
-    TypeOrmModule.forRoot(dataSourceOptions),
-    ThrottlerModule.forRoot({
-      throttlers: [
-        {
-          ttl: Number(process.env.THROTTLE_MS!),
-          limit: Number(process.env.THROTTLE_LIMIT!),
-        },
-      ],
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: buildDataSourceOptions,
+    }),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: config.getOrThrow<number>('THROTTLE_MS'),
+            limit: config.getOrThrow<number>('THROTTLE_LIMIT'),
+          },
+        ],
+      }),
     }),
     SearchModule,
     DrugModule,

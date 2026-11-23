@@ -5,8 +5,9 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { DrugController } from './drug.controller';
 import { DrugService } from './drug.service';
-import { Drug } from '../../types/drug';
+import { Drug } from '../types/drug';
 import { rejectionOf } from '../test-utils/testing';
+import { createValidationPipe } from '../config/validation-pipe';
 
 describe('DrugController', () => {
   let controller: DrugController;
@@ -34,6 +35,7 @@ describe('DrugController', () => {
     controller = module.get<DrugController>(DrugController);
     // The 500 test throws on purpose; keep its stack trace out of the output
     app = module.createNestApplication({ logger: false });
+    app.useGlobalPipes(createValidationPipe());
     await app.init();
   });
 
@@ -51,7 +53,7 @@ describe('DrugController', () => {
 
     it('rejects a missing id with a 400', async () => {
       const error = await rejectionOf<HttpException>(
-        controller.getDrug(0, mockResponse() as unknown as Response),
+        controller.getDrug({ id: '0' }, mockResponse() as unknown as Response),
       );
 
       expect(error).toBeInstanceOf(HttpException);
@@ -63,7 +65,7 @@ describe('DrugController', () => {
       drugService.getDrug.mockResolvedValue(drug);
       const res = mockResponse();
 
-      await controller.getDrug(127, res as unknown as Response);
+      await controller.getDrug({ id: '127' }, res as unknown as Response);
 
       expect(drugService.getDrug).toHaveBeenCalledWith(127);
       expect(res.status).toHaveBeenCalledWith(200);
@@ -81,9 +83,18 @@ describe('DrugController', () => {
         .expect('Content-Type', /json/)
         .expect(drug);
 
-      // Route params arrive as strings; nothing converts them
-      expect(drugService.getDrug).toHaveBeenCalledWith('127');
+      // The id is validated and handed to the service as a number
+      expect(drugService.getDrug).toHaveBeenCalledWith(127);
     });
+
+    // MySQL would coerce '127abc' to 127 and return that drug
+    it.each(['127abc', 'abc', '1.5', '1e3', '-1'])(
+      'rejects a non-integer id (%p) with a 400',
+      async (id) => {
+        await request(app.getHttpServer()).get(`/drug/${id}`).expect(400);
+        expect(drugService.getDrug).not.toHaveBeenCalled();
+      },
+    );
 
     it('returns a 404 when there is no such drug', async () => {
       drugService.getDrug.mockResolvedValue(null);

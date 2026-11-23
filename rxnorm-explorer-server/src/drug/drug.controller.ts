@@ -8,7 +8,8 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { DrugService } from './drug.service';
-import { Drug } from '../../types/drug';
+import { Drug } from '../types/drug';
+import { DrugParamsDto } from './dto/drug-params.dto';
 
 @Controller('drug')
 export class DrugController {
@@ -16,9 +17,10 @@ export class DrugController {
 
   @Get(':id')
   async getDrug(
-    @Param('id') id: number,
+    @Param() params: DrugParamsDto,
     @Res() res: Response,
   ): Promise<Response> {
+    const id = Number(params.id);
     if (!id) {
       throw new HttpException('ID is required', HttpStatus.BAD_REQUEST);
     }
