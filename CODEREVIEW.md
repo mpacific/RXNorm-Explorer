@@ -262,7 +262,9 @@ Every drug page is fetched in the browser after hydration (`'use client'` everyw
 
 The server-component approach also makes the page show content on first load and makes drug pages indexable.
 
-### P5 — Low — Client bundle and rendering
+### ~~P5 — Low — Client bundle and rendering~~ ✅ Fixed
+
+> **Fixed** — on `fix/p5-client-bundle`. All three points are done. (1) `app/page.tsx` is a server component, and `'use client'` moved down to `searchBox.tsx`, which needs the router. (2) Roboto is loaded with `next/font/google` (four weights, Latin subset preloaded, `--font-roboto` variable). A small client `ThemeProvider` (`app/theme.tsx`) points MUI's typography at the variable, and `@fontsource/roboto` is removed. (3) The layout imports `v16-appRouter`. `next build` passes, and the served home page has the font variable class on `<html>` and a woff2 preload. **Note:** `next/font/google` downloads the font from Google *at build time*, so builds need network access (visitors never contact Google).
 
 - `app/page.tsx` is `'use client'` but has no client logic. Making it a server component would ship less JS.
 - `layout.tsx:6-9` loads 4 Roboto weights through `@fontsource` CSS. `next/font/google` (or `next/font/local`) would self-host only the subsets that are used and avoid layout shift.
