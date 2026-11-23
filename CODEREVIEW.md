@@ -163,7 +163,9 @@ There is a second problem. MySQL DDL commits implicitly, so `migrationsTransacti
 
 The server joins NDCs with `', '` (`drug.service.ts:50`). The client splits on `','` and joins with `', '` again (`drugDetail.tsx:64,109`), which gives `"a,  b"`. **Fix:** return `NDCs: string[]` from the API and join once in the client.
 
-### C6 — Low — The search box goes stale on back/forward
+### ~~C6 — Low — The search box goes stale on back/forward~~ ✅ Fixed
+
+> **Fixed** — on `fix/c6-searchbox-history`. `<SearchBox key={`box:${searchTerm}`}>` remounts the box when the URL term changes. The `box:` prefix is needed because `SearchResults` beside it is already keyed on the bare term, and duplicate sibling keys left the old input in the DOM. A test covers back/forward.
 
 `searchBox.tsx:19` uses an uncontrolled `defaultValue`. On `/search`, if you search "a", then "b", then press Back, the URL and results show "a" but the text box still says "b". **Fix:** render `<SearchBox key={searchTerm} … />` in `search/page.tsx:31`.
 
