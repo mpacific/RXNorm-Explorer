@@ -1,11 +1,27 @@
 import { Injectable } from '@nestjs/common';
-import { Drug } from '../../types/drug';
+import { Drug } from '../types/drug';
+import { RelatedDrug } from '../types/relatedDrugs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RXNCONSO } from '../db/entities/RXNCONSO.entity';
 import { Repository } from 'typeorm';
 import { RXNREL } from '../db/entities/RXNREL.entity';
 import { EXCLUDED_TTYS } from '../shared/excludedTtys';
 import { RXNSAT } from '../db/entities/RXNSAT.entity';
+
+// The inverse side of each relationship. RXNREL stores both directions, so
+// leaving these out keeps each relationship to one row.
+const INVERSE_RELAS = [
+  'inverse_isa',
+  'ingredient_of',
+  'tradename_of',
+  'dose_form_of',
+  'precise_ingredient_of',
+  'doseformgroup_of',
+  'ingredients_of',
+  'part_of',
+  'boss_of',
+  'form_of',
+];
 
 @Injectable()
 export class DrugService {
@@ -35,39 +51,43 @@ export class DrugService {
       return null;
     }
 
-    const NDCs:
-      | {
-          ATV: string;
-        }[]
-      | [] = await this.rxnsatRepository
-      .createQueryBuilder('rxnsat')
-      .select(['rxnsat.ATV AS ATV'])
-      .where('rxnsat.RXAUI = :drugAUI AND rxnsat.ATN = "NDC"', {
-        drugAUI: drug.RXAUI,
-      })
-      .getRawMany();
+    // Both lookups only need the drug's own row, so run them side by side
+    const [NDCs, relatedDrugs] = await Promise.all([
+      this.rxnsatRepository
+        .createQueryBuilder('rxnsat')
+        .select(['rxnsat.ATV AS ATV'])
+        .where('rxnsat.RXAUI = :drugAUI AND rxnsat.ATN = :ndc', {
+          drugAUI: drug.RXAUI,
+          ndc: 'NDC',
+        })
+        .getRawMany<{ ATV: string }>(),
+      this.rxnrelRepository
+        .createQueryBuilder('r')
+        .select(['r.id', 'r.RELA', 'r.RXCUI1', 'r.RXCUI2'])
+        .innerJoin('RXNCONSO', 'c1', 'r.RXCUI1 = c1.RXCUI')
+        .innerJoin('RXNCONSO', 'c2', 'r.RXCUI2 = c2.RXCUI')
+        .addSelect(['c1.id', 'c1.RXCUI', 'c1.TTY', 'c1.STR'])
+        .addSelect(['c2.id', 'c2.RXCUI', 'c2.TTY', 'c2.STR'])
+        .where('r.RELA IS NOT NULL')
+        .andWhere('r.RELA NOT IN (:...inverseRelas)', {
+          inverseRelas: INVERSE_RELAS,
+        })
+        .andWhere('(r.RXCUI1 = :RXCUI OR r.RXCUI2 = :RXCUI)', {
+          RXCUI: drug.RXCUI,
+        })
+        .andWhere('c1.TTY NOT IN (:excludeTtys)', {
+          excludeTtys: EXCLUDED_TTYS,
+        })
+        .andWhere('c2.TTY NOT IN (:excludeTtys)', {
+          excludeTtys: EXCLUDED_TTYS,
+        })
+        .orderBy('r.RXCUI1', 'ASC')
+        .addOrderBy('r.RXCUI2', 'ASC')
+        .getRawMany<RelatedDrug>(),
+    ]);
 
-    drug.ATV = NDCs.map((NDC) => NDC.ATV).join(', ');
-
-    drug.RelatedDrugs = await this.rxnrelRepository
-      .createQueryBuilder('r')
-      .select(['r.id', 'r.RELA', 'r.RXCUI1', 'r.RXCUI2'])
-      .innerJoin('RXNCONSO', 'c1', 'r.RXCUI1 = c1.RXCUI')
-      .innerJoin('RXNCONSO', 'c2', 'r.RXCUI2 = c2.RXCUI')
-      .addSelect(['c1.id', 'c1.RXCUI', 'c1.TTY', 'c1.STR'])
-      .addSelect(['c2.id', 'c2.RXCUI', 'c2.TTY', 'c2.STR'])
-      .where('r.RELA IS NOT NULL')
-      .andWhere(
-        'r.RELA NOT IN ("inverse_isa", "ingredient_of", "tradename_of", "dose_form_of", "precise_ingredient_of", "doseformgroup_of", "ingredients_of", "part_of", "boss_of", "form_of")',
-      )
-      .andWhere('(r.RXCUI1 = :RXCUI OR r.RXCUI2 = :RXCUI)', {
-        RXCUI: drug.RXCUI,
-      })
-      .andWhere('c1.TTY NOT IN (:excludeTtys)', { excludeTtys: EXCLUDED_TTYS })
-      .andWhere('c2.TTY NOT IN (:excludeTtys)', { excludeTtys: EXCLUDED_TTYS })
-      .orderBy('r.RXCUI1', 'ASC')
-      .addOrderBy('r.RXCUI2', 'ASC')
-      .getRawMany();
+    drug.NDCs = NDCs.map((NDC) => NDC.ATV);
+    drug.RelatedDrugs = relatedDrugs;
 
     return drug;
   }

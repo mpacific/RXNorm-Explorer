@@ -1,8 +1,8 @@
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import DrugDetail from './drugDetail';
-import { Drug } from '../../../rxnorm-explorer-server/types/drug';
-import { RelatedDrug } from '../../../rxnorm-explorer-server/types/relatedDrugs';
+import { Drug } from '../../../rxnorm-explorer-server/src/types/drug';
+import { RelatedDrug } from '../../../rxnorm-explorer-server/src/types/relatedDrugs';
 
 const related = (
   r_id: number,
@@ -49,7 +49,7 @@ const drug = (overrides: Partial<Drug> = {}): Drug => ({
   RXCUI: '161',
   TTY: 'IN',
   STR: 'acetaminophen',
-  ATV: '00001, 00002',
+  NDCs: ['00001', '00002'],
   RelatedDrugs: [
     related(1, 'has_ingredient', tablet, acetaminophen),
     related(2, 'has_tradename', acetaminophen, tylenol),
@@ -83,7 +83,7 @@ describe('DrugDetail', () => {
   });
 
   it('lists its NDCs', () => {
-    render(<DrugDetail drug={drug({ ATV: '00001,00002,00003' })} />);
+    render(<DrugDetail drug={drug({ NDCs: ['00001', '00002', '00003'] })} />);
 
     expect(
       within(factsRow()).getByText('00001, 00002, 00003')
@@ -91,7 +91,7 @@ describe('DrugDetail', () => {
   });
 
   it('says so when it has no NDCs', () => {
-    render(<DrugDetail drug={drug({ ATV: '' })} />);
+    render(<DrugDetail drug={drug({ NDCs: [] })} />);
 
     expect(within(factsRow()).getByText('None')).toBeInTheDocument();
   });
