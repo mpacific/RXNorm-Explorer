@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { type INestApplication } from '@nestjs/common';
 import helmet from 'helmet';
+import { createValidationPipe } from './config/validation-pipe';
 
 // Split out from bootstrap so the e2e tests can apply the same middleware to
 // the app they build.
@@ -11,6 +12,7 @@ export function configureApp(app: INestApplication): INestApplication {
   const config = app.get(ConfigService);
 
   app.use(helmet());
+  app.useGlobalPipes(createValidationPipe());
   app.enableCors({
     origin: config.getOrThrow<string>('CORS_ALLOWED').split(','),
     credentials: true,

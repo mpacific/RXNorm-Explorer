@@ -266,15 +266,13 @@ describe('RxNorm Explorer API (e2e)', () => {
         .expect(200)
         .expect({ totalResults: 0, searchResults: [] }));
 
-    it('sorts by name when asked to sort by a column it does not allow', async () => {
-      const byName = await search({ searchTerm: 'acetaminophen' });
-      const byId = await search({
-        searchTerm: 'acetaminophen',
-        sortField: 'id',
-      }).expect(200);
+    it('rejects a sort column it does not allow', () =>
+      search({ searchTerm: 'acetaminophen', sortField: 'id' }).expect(400));
 
-      expect(byId.body).toEqual(byName.body);
-    });
+    it('rejects a repeated search term rather than failing', () =>
+      request(app.getHttpServer())
+        .get('/search?searchTerm=a&searchTerm=b')
+        .expect(400));
   });
 
   describe('GET /drug/:id', () => {
@@ -317,6 +315,11 @@ describe('RxNorm Explorer API (e2e)', () => {
 
       expect(body.ATV.split(', ')).toContain(withNdc.NDC);
     });
+
+    it('rejects an id that is not a whole number', () =>
+      request(app.getHttpServer())
+        .get(`/drug/${ingredient.id}abc`)
+        .expect(400));
 
     it('returns a 404 for a drug that does not exist', () =>
       request(app.getHttpServer())

@@ -5,6 +5,7 @@ import { App } from 'supertest/types';
 import { SearchController } from './search.controller';
 import { SearchService } from './search.service';
 import { SearchResults } from '../types/searchResults';
+import { createValidationPipe } from '../config/validation-pipe';
 
 describe('SearchController', () => {
   let app: INestApplication<App>;
@@ -24,6 +25,7 @@ describe('SearchController', () => {
     }).compile();
 
     app = module.createNestApplication();
+    app.useGlobalPipes(createValidationPipe());
     await app.init();
   });
 
@@ -91,5 +93,43 @@ describe('SearchController', () => {
       statusCode: 400,
       message: 'Search term is required',
     });
+  });
+
+  // Express parses a repeated key into an array, which used to reach the
+  // service and fail there with a 500
+  it.each([
+    ['a repeated searchTerm', 'searchTerm=a&searchTerm=b'],
+    [
+      'a repeated sortDirection',
+      'searchTerm=a&sortDirection=asc&sortDirection=desc',
+    ],
+    ['a repeated cursor', 'searchTerm=a&cursor=a&cursor=b&cursorId=1'],
+    ['an unknown sortField', 'searchTerm=a&sortField=id'],
+    ['an unknown sortDirection', 'searchTerm=a&sortDirection=sideways'],
+    ['a non-numeric cursorId', 'searchTerm=a&cursor=a&cursorId=1e3'],
+    ['an over-long searchTerm', `searchTerm=${'a'.repeat(201)}`],
+  ])('rejects %s with a 400', async (_, query) => {
+    const response = await request(app.getHttpServer())
+      .get(`/search?${query}`)
+      .expect(400);
+
+    expect(response.body).toMatchObject({ statusCode: 400 });
+    expect(searchService.searchDrugs).not.toHaveBeenCalled();
+  });
+
+  it('ignores query parameters it does not know', async () => {
+    searchService.searchDrugs.mockResolvedValue(results);
+
+    await request(app.getHttpServer())
+      .get('/search?searchTerm=161&limit=100000')
+      .expect(200);
+
+    expect(searchService.searchDrugs).toHaveBeenCalledWith(
+      '161',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    );
   });
 });

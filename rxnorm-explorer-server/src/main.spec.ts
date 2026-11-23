@@ -16,6 +16,7 @@ describe('main', () => {
 
   const mockApp = () => ({
     use: jest.fn(),
+    useGlobalPipes: jest.fn(),
     enableCors: jest.fn(),
     listen: jest.fn().mockResolvedValue(undefined),
     get: jest.fn((token: unknown) => {
@@ -41,6 +42,17 @@ describe('main', () => {
       expect(app.use).toHaveBeenCalledTimes(1);
       // helmet's middleware takes (req, res, next)
       expect(app.use.mock.calls[0][0]).toHaveLength(3);
+    });
+
+    it('validates every request', () => {
+      configureApp(app as never);
+
+      expect(app.useGlobalPipes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isTransformEnabled: true,
+          validatorOptions: expect.objectContaining({ whitelist: true }),
+        }),
+      );
     });
 
     it('allows each configured origin', () => {

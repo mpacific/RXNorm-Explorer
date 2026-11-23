@@ -22,7 +22,7 @@ The main problems are around the code rather than in it:
 2. ~~**The API connects to MySQL as `root`**, and `local_infile` is still on globally.~~ ✅ (in the repo; the server change is manual)
 3. ~~**`npm run start:prod` is broken.** The build writes `dist/src/main.js`, but the script runs `dist/main`.~~ ✅
 4. **4 of the 5 unit test suites fail**, and the only e2e test checks the scaffold's "Hello World".
-5. **There is no request validation.** Malformed query strings cause 500s, and `/drug/127abc` returns drug 127.
+5. ~~**There is no request validation.** Malformed query strings cause 500s, and `/drug/127abc` returns drug 127.~~ ✅
 6. **Drug URLs use a surrogate `id`** that the migration assigns. A reload of the RxNorm data will change or remove these ids.
 
 ---
@@ -65,7 +65,9 @@ The README (`README.md:17`) does say to create a separate user, but nothing enfo
 
 **Fix:** add a step to the README to run `SET GLOBAL local_infile = 0;` after the import. Better still, pass `--local-infile=1` only on the import client and leave the server setting off.
 
-### S4 — Medium — No input validation on request parameters
+### ~~S4 — Medium — No input validation on request parameters~~ ✅ Fixed
+
+> **Fixed** — on `fix/s4-request-validation`. A global `ValidationPipe({ whitelist, transform })` is registered in `configureApp`, and `SearchQueryDto` caps lengths and checks `sortField`/`sortDirection` with `@IsIn` and `cursorId` as digits. Repeated keys, unknown sort fields and `/drug/127abc` now get a 400. **Two differences from the suggestion:** (1) an unknown `sortField` is now a 400 instead of silently sorting by name. (2) The drug id is validated with a `DrugParamsDto` rather than `ParseIntPipe`, because the global pipe runs first and turned `1e3` into `1000` before `ParseIntPipe` saw it.
 
 There is no global `ValidationPipe` and no DTOs. Controller parameter types are not enforced at runtime.
 
@@ -324,7 +326,7 @@ Add a workflow that runs, for both packages: `npm ci`, `lint`, `tsc --noEmit`, `
 | 1 | ~~S1: `npm audit fix` in both packages~~ ✅ | Minutes |
 | 2 | ~~S2 + S3: read-only app DB user; turn `local_infile` off~~ ✅ | Minutes |
 | 3 | ~~C1: fix `start:prod` (move `types/` under `src/`)~~ ✅ | Small |
-| 4 | S4: `ValidationPipe` + DTOs + `ParseIntPipe` | Small |
+| 4 | ~~S4: `ValidationPipe` + DTOs + `ParseIntPipe`~~ ✅ | Small |
 | 5 | C2: fix the migration `down()` SQL | Minutes |
 | 6 | C4 + D2: get tests passing, add SearchService tests and CI | Medium |
 | 7 | D1: commit the docker compose setup | Small |
