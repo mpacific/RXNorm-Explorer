@@ -4,31 +4,28 @@ import {
   HttpException,
   HttpStatus,
   Param,
-  Res,
+  UseInterceptors,
 } from '@nestjs/common';
-import type { Response } from 'express';
 import { DrugService } from './drug.service';
-import { Drug } from '../../types/drug';
+import { Drug } from '../types/drug';
+import { DrugParamsDto } from './dto/drug-params.dto';
+import { CacheControlInterceptor } from '../shared/cache-control.interceptor';
 
 @Controller('drug')
 export class DrugController {
   constructor(private readonly drugService: DrugService) {}
 
-  @Get(':id')
-  async getDrug(
-    @Param('id') id: number,
-    @Res() res: Response,
-  ): Promise<Response> {
-    if (!id) {
-      throw new HttpException('ID is required', HttpStatus.BAD_REQUEST);
-    }
-
-    const drug: Drug | null = await this.drugService.getDrug(id);
+  // Keyed on RXAUI rather than the surrogate id, so links and bookmarks keep
+  // pointing at the same drug after the monthly data reload.
+  @Get(':rxaui')
+  @UseInterceptors(CacheControlInterceptor)
+  async getDrug(@Param() params: DrugParamsDto): Promise<Drug> {
+    const drug: Drug | null = await this.drugService.getDrug(params.rxaui);
 
     if (!drug) {
       throw new HttpException('Drug not found', HttpStatus.NOT_FOUND);
     }
 
-    return res.status(200).json(drug);
+    return drug;
   }
 }

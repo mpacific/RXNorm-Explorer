@@ -25,6 +25,7 @@ const lastListProps = () => listRenders[listRenders.length - 1];
 
 const row = (id: number, STR = `drug ${id}`): SearchResult => ({
   id,
+  RXAUI: `A${id}`,
   RXCUI: String(1000 + id),
   TTY: 'SCD',
   STR,
@@ -196,13 +197,22 @@ describe('SearchResults', () => {
 
   it('shows an error instead of the list when the server says no', async () => {
     fetch.mockImplementation(
-      async () => new Response('{}', { status: 400, statusText: 'Bad Request' })
+      async () =>
+        new Response(
+          JSON.stringify({
+            statusCode: 400,
+            message: 'Search term is required',
+          }),
+          { status: 400, statusText: 'Bad Request' }
+        )
     );
 
     render(<SearchResults searchTerm="a" />);
 
     expect(
-      await screen.findByText(/Search results error: Bad Request/)
+      await screen.findByText(
+        /Search results error: 400 Search term is required/
+      )
     ).toBeInTheDocument();
     expect(screen.queryByTestId('results-list')).not.toBeInTheDocument();
   });

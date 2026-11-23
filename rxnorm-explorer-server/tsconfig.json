@@ -16,11 +16,11 @@
     "ignoreDeprecations": "5.0",
     "incremental": true,
     "skipLibCheck": true,
-    "strictNullChecks": true,
+    "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": false,
-    "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false,
+    "noFallthroughCasesInSwitch": true,
+    // Entity and DTO properties are filled in by TypeORM and
+    // class-transformer, not by constructors
     "strictPropertyInitialization": false
   }
 }
