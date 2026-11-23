@@ -2,6 +2,10 @@
 
 **Branch:** `nestjs` (at `dd9bf5b`) · **Date:** 2026-10-13 · **Scope:** the whole repo (`rxnorm-explorer-server`, `rxnorm-explorer-client`, docs and config)
 
+## Status of fixes (2026-11-23)
+
+Each finding has been fixed on its own branch, one commit each, stacked in the "Recommended order" below: `fix/s1-dependency-audit` → … → `fix/d2-ci`. A fixed finding is struck through with ✅ and a note saying where and how it was fixed. A partly fixed one is marked 🟡, with a note on what is left and why. S8 needed no change.
+
 ## How this review was done
 
 - Read all of the tracked source, config, migrations, tests and docs.
@@ -21,7 +25,7 @@ The main problems are around the code rather than in it:
 1. ~~**Dependencies have known vulnerabilities**, including a critical advisory against the installed Next.js (16.3.4).~~ ✅
 2. ~~**The API connects to MySQL as `root`**, and `local_infile` is still on globally.~~ ✅ (in the repo; the server change is manual)
 3. ~~**`npm run start:prod` is broken.** The build writes `dist/src/main.js`, but the script runs `dist/main`.~~ ✅
-4. **4 of the 5 unit test suites fail**, and the only e2e test checks the scaffold's "Hello World".
+4. ~~**4 of the 5 unit test suites fail**, and the only e2e test checks the scaffold's "Hello World".~~ ✅
 5. ~~**There is no request validation.** Malformed query strings cause 500s, and `/drug/127abc` returns drug 127.~~ ✅
 6. ~~**Drug URLs use a surrogate `id`** that the migration assigns. A reload of the RxNorm data will change or remove these ids.~~ ✅
 
@@ -154,7 +158,9 @@ There is a second problem. MySQL DDL commits implicitly, so `migrationsTransacti
 - Use `RXAUI` as the public identifier in URLs and the API. It is the stable RxNorm atom id, it already has a unique index, and `id` can stay internal.
 - Document a reload procedure in the README, for example: load into a fresh schema, run the migrations, then swap. Or turn the post-load steps into an idempotent script that isn't tied to the `migrations` table.
 
-### C4 — Medium — Most tests fail, and the rest only test the scaffold
+### ~~C4 — Medium — Most tests fail, and the rest only test the scaffold~~ 🟡 Partly fixed
+
+> **Partly fixed** — mostly before this round (`a07752f`): all suites pass with repository mocks, and `SearchService` has thorough unit tests. The e2e suite now covers paging across runs of equal values, NDC/RXCUI lookups, a 404, and (under S4) 400s on bad input. This round kept those passing and added tests with each fix. Server unit tests now run in CI (D2). **Not done:** e2e against a small fixture database (Testcontainers or a seeded MySQL). It still runs against the full database in `.env`, so it can't run in CI.
 
 `npx jest`: **4 failed, 1 passed**. `SearchController`, `SearchService`, `DrugController` and `DrugService` each fail with `Nest can't resolve dependencies…` because their specs don't provide the service or the repository mocks. The one that passes tests `AppController`'s "Hello World". `test/app.e2e-spec.ts` boots the real `AppModule`, so it needs a live database, and it also only asserts "Hello World".
 
@@ -337,7 +343,9 @@ The client imports `../../../rxnorm-explorer-server/types/drug` (`drugDetail.tsx
 
 `README.md:14-16` tells you to work in `rxnorm-explorer-server/docker`, copy `.env.example`, and run `docker compose up -d`. That directory only holds the git-ignored `mysqldata/`. There is no `docker-compose.yml` and no `.env.example` in it. A fresh clone can't follow the setup. **Fix:** commit the compose file and its `.env.example`.
 
-### D2 — No CI
+### ~~D2 — No CI~~ ✅ Fixed
+
+> **Fixed** — on `fix/d2-ci`: `.github/workflows/ci.yml` runs, for each package on Node 24, `npm ci`, `npm audit --omit=dev --audit-level=high`, eslint (directly, because `npm run lint` uses `--fix`), `tsc --noEmit`, `npm test` and `npm run build`. Both jobs were rehearsed in a clean worktree with no `.env`, and that rehearsal caught a Q4 test that only passed because of the local `.env`. The fix was folded into the Q4 commit. The server e2e suite isn't in CI, because it needs a loaded RxNorm database (see C4). **Not yet run on GitHub itself.**
 
 Add a workflow that runs, for both packages: `npm ci`, `lint`, `tsc --noEmit`, `test`, `build`, and `npm audit --omit=dev --audit-level=high`. That would have caught C1, C4 and S1.
 
@@ -372,9 +380,9 @@ Add a workflow that runs, for both packages: `npm ci`, `lint`, `tsc --noEmit`, `
 | 3 | ~~C1: fix `start:prod` (move `types/` under `src/`)~~ ✅ | Small |
 | 4 | ~~S4: `ValidationPipe` + DTOs + `ParseIntPipe`~~ ✅ | Small |
 | 5 | ~~C2: fix the migration `down()` SQL~~ ✅ | Minutes |
-| 6 | C4 + D2: get tests passing, add SearchService tests and CI | Medium |
+| 6 | ~~C4 + D2: get tests passing, add SearchService tests and CI~~ ✅ (fixture-DB e2e still open) | Medium |
 | 7 | ~~D1: commit the docker compose setup~~ ✅ | Small |
 | 8 | ~~C3: switch public ids to `RXAUI`; document the data reload~~ ✅ | Medium |
-| 9 | P1 + P2: minimum term length / capped count; bound the drug-detail payload | Small–Medium |
-| 10 | P4: caching headers or a server-rendered drug page | Small–Medium |
-| 11 | The remaining Low/Info items, as convenient | — |
+| 9 | ~~P1 + P2: minimum term length / capped count; bound the drug-detail payload~~ 🟡 (min length + NDC preview done; capped count and server-side paging open) | Small–Medium |
+| 10 | ~~P4: caching headers or a server-rendered drug page~~ ✅ | Small–Medium |
+| 11 | ~~The remaining Low/Info items, as convenient~~ ✅ (partial items noted under S5, Q2, Q5, C12) | — |
