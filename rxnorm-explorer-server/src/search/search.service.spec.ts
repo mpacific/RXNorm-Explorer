@@ -201,6 +201,7 @@ describe('SearchService', () => {
 
       expect(page.select).toHaveBeenCalledWith([
         'rxnconso.id',
+        'rxnconso.RXAUI',
         'rxnconso.TTY',
         'rxnconso.RXCUI',
         'rxnconso.STR',

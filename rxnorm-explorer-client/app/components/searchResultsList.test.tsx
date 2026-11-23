@@ -14,6 +14,7 @@ const resultsPage = (page: number, size = 50): SearchResult[] =>
     const n = page * 50 + i + 1;
     return {
       id: n,
+      RXAUI: `A${n}`,
       RXCUI: String(1000 + n),
       TTY: 'SCD',
       STR: `drug ${String(n).padStart(3, '0')}`,
@@ -93,7 +94,8 @@ describe('SearchResultsList', () => {
 
     await userEvent.click(screen.getByText('drug 002'));
 
-    expect(push).toHaveBeenCalledWith('/drug/2');
+    // by RXAUI, not the internal id
+    expect(push).toHaveBeenCalledWith('/drug/A2');
   });
 
   describe('paging', () => {
