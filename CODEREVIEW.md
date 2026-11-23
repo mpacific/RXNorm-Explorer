@@ -235,7 +235,9 @@ That's acceptable today. But a one-character search costs roughly 350 ms of DB t
 2. Cap the count, for example `SELECT COUNT(*) FROM (… LIMIT 1001)`, and show "1,000+". Or fold it into the page query with `COUNT(*) OVER()`, which costs one scan instead of two.
 3. For real speed, add an `ngram` FULLTEXT index on `STR` (MySQL's ngram parser supports infix matching) and use `MATCH … AGAINST` in boolean mode for terms of length ≥ ngram size. Keep `LIKE` as the fallback for shorter terms.
 
-### P2 — Medium — The drug detail response has no size limit
+### ~~P2 — Medium — The drug detail response has no size limit~~ 🟡 Partly fixed
+
+> **Partly fixed** — on `fix/p2-bound-ndc-list`: the facts table shows the first 20 NDCs and a "Show all N NDCs" / "Show fewer" toggle. (NDCs became an array under C5.) **Not done:** the API still sends every NDC and all related-drug rows, about 50 KB and 110 KB for the worst cases. The DataGrid virtualizes the 562 rows, so rendering is fine. Paginating or grouping related drugs by RELA on the server changes the API and the page layout, so I left it for you to decide.
 
 - One atom has **3,558 NDCs**, and all of them are joined into one string and rendered in one table cell.
 - Acetaminophen (`/drug/127`) returns **562 related-drug rows**, all of them sent to the client and handed to the DataGrid.

@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import DrugDetail from './drugDetail';
+import DrugDetail, { NDC_PREVIEW_COUNT } from './drugDetail';
 import { Drug } from '../../../rxnorm-explorer-server/src/types/drug';
 import { RelatedDrug } from '../../../rxnorm-explorer-server/src/types/relatedDrugs';
 
@@ -88,6 +89,33 @@ describe('DrugDetail', () => {
     expect(
       within(factsRow()).getByText('00001, 00002, 00003')
     ).toBeInTheDocument();
+  });
+
+  it('shows only the first NDCs of a long list until asked for all', async () => {
+    const NDCs = Array.from({ length: 50 }, (_, i) =>
+      String(i).padStart(5, '0')
+    );
+    render(<DrugDetail drug={drug({ NDCs })} />);
+
+    const facts = within(factsRow());
+    const preview = NDCs.slice(0, NDC_PREVIEW_COUNT).join(', ');
+    expect(facts.getByText(preview)).toBeInTheDocument();
+    expect(facts.queryByText(NDCs.join(', '))).not.toBeInTheDocument();
+
+    await userEvent.click(
+      facts.getByRole('button', { name: 'Show all 50 NDCs' })
+    );
+    expect(facts.getByText(NDCs.join(', '))).toBeInTheDocument();
+
+    await userEvent.click(facts.getByRole('button', { name: 'Show fewer' }));
+    expect(facts.getByText(preview)).toBeInTheDocument();
+  });
+
+  it('has no button when every NDC fits', () => {
+    const NDCs = Array.from({ length: NDC_PREVIEW_COUNT }, (_, i) => `${i}`);
+    render(<DrugDetail drug={drug({ NDCs })} />);
+
+    expect(within(factsRow()).queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('says so when it has no NDCs', () => {

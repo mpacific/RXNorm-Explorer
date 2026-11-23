@@ -1,4 +1,5 @@
 import {
+  Button,
   Container,
   Table,
   TableBody,
@@ -11,7 +12,7 @@ import {
 import { Drug } from '../../../rxnorm-explorer-server/src/types/drug';
 import Link from 'next/link';
 import { RelatedDrug } from '../../../rxnorm-explorer-server/src/types/relatedDrugs';
-import { ReactElement } from 'react';
+import { ReactElement, useState } from 'react';
 import { DataGrid, GridRenderCellParams } from '@mui/x-data-grid';
 
 const translateRELA = (RELA: string): string => {
@@ -52,6 +53,37 @@ const linkDrug = (
     </Link>
   );
 };
+
+// Some atoms have thousands of NDCs (one has 3,558), so only the first few
+// are shown until asked for the rest.
+export const NDC_PREVIEW_COUNT = 20;
+
+function NdcList(props: { NDCs: string[] }) {
+  const [showAll, setShowAll] = useState(false);
+
+  if (props.NDCs.length === 0) {
+    return <>None</>;
+  }
+
+  const hidden = props.NDCs.length - NDC_PREVIEW_COUNT;
+  const shown =
+    showAll || hidden <= 0
+      ? props.NDCs
+      : props.NDCs.slice(0, NDC_PREVIEW_COUNT);
+
+  return (
+    <>
+      {shown.join(', ')}
+      {hidden > 0 && (
+        <div>
+          <Button size="small" onClick={() => setShowAll(!showAll)}>
+            {showAll ? 'Show fewer' : `Show all ${props.NDCs.length} NDCs`}
+          </Button>
+        </div>
+      )}
+    </>
+  );
+}
 
 type DetailRelatedDrug = {
   id: string;
@@ -114,7 +146,9 @@ export default function DrugDetail(props: { drug: Drug }) {
               >
                 {props.drug.TTY}
               </TableCell>
-              <TableCell>{props.drug.NDCs.join(', ') || 'None'}</TableCell>
+              <TableCell>
+                <NdcList NDCs={props.drug.NDCs} />
+              </TableCell>
             </TableRow>
           </TableBody>
         </Table>
