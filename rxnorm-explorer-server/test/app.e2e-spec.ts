@@ -102,14 +102,19 @@ describe('RxNorm Explorer API (e2e)', () => {
     return { ids, totalResults };
   };
 
-  describe('GET /', () => {
-    it('responds', () =>
-      request(app.getHttpServer()).get('/').expect(200).expect('Hello World!'));
+  describe('GET /health', () => {
+    it('is up while the database answers', () =>
+      request(app.getHttpServer())
+        .get('/health')
+        .expect(200)
+        .expect({ status: 'ok' }));
   });
 
   describe('middleware', () => {
     it('sets security headers', async () => {
-      const response = await request(app.getHttpServer()).get('/').expect(200);
+      const response = await request(app.getHttpServer())
+        .get('/health')
+        .expect(200);
 
       expect(response.headers['x-content-type-options']).toBe('nosniff');
       expect(response.headers['x-frame-options']).toBe('SAMEORIGIN');
@@ -118,7 +123,7 @@ describe('RxNorm Explorer API (e2e)', () => {
 
     it('allows the configured origin', async () => {
       const response = await request(app.getHttpServer())
-        .get('/')
+        .get('/health')
         .set('Origin', 'http://localhost:3000');
 
       expect(response.headers['access-control-allow-origin']).toBe(
@@ -131,7 +136,7 @@ describe('RxNorm Explorer API (e2e)', () => {
 
     it('does not allow other origins', async () => {
       const response = await request(app.getHttpServer())
-        .get('/')
+        .get('/health')
         .set('Origin', 'https://evil.example');
 
       expect(response.headers['access-control-allow-origin']).toBeUndefined();

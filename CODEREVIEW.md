@@ -292,7 +292,9 @@ The client imports `../../../rxnorm-explorer-server/types/drug` (`drugDetail.tsx
 
 **Fix:** put plain DTO types in a small shared package, for example an npm workspace `packages/api-types`. Have the API map entities to DTOs. Alternatively, generate an OpenAPI spec with `@nestjs/swagger` and generate client types from it.
 
-### Q3 — Leftover scaffold code and dependencies
+### ~~Q3 — Leftover scaffold code and dependencies~~ ✅ Fixed
+
+> **Fixed** — on `fix/q3-scaffold-cleanup`. `AppController`/`AppService` are replaced by `GET /health`, which runs `SELECT 1` and returns a 503 without details when the database is down. It is `@SkipThrottle()`, and e2e tests cover both. Both stock package READMEs are replaced with short ones listing the endpoints and scripts. `rxjs` and `dotenv` are removed from the client. `@types/node` was already `^24` before this round.
 
 - `AppController`/`AppService` "Hello World" route at `GET /`. Replace it with a real health check, for example `GET /health` that pings the DB.
 - `rxnorm-explorer-server/README.md` is the stock NestJS README.

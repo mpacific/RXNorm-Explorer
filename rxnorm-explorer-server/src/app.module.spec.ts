@@ -30,8 +30,7 @@ const loadAppModule = (env: Record<string, string>) => {
       const load = (path: string) => jest.requireActual<object>(path);
       loaded = {
         ...load('./app.module'),
-        ...load('./app.controller'),
-        ...load('./app.service'),
+        ...load('./health/health.controller'),
         ...load('./search/search.module'),
         ...load('./drug/drug.module'),
         ...load('@nestjs/config'),
@@ -109,14 +108,11 @@ describe('AppModule', () => {
     ).toContainEqual({ provide: APP_GUARD, useClass: ThrottlerGuard });
   });
 
-  it('serves the root route', () => {
-    const { AppModule, AppController, AppService } = loadAppModule(ENV);
+  it('serves the health check', () => {
+    const { AppModule, HealthController } = loadAppModule(ENV);
 
     expect(metadata(AppModule, MODULE_METADATA.CONTROLLERS)).toEqual([
-      AppController,
+      HealthController,
     ]);
-    expect(
-      metadata<Provider[]>(AppModule, MODULE_METADATA.PROVIDERS),
-    ).toContain(AppService);
   });
 });

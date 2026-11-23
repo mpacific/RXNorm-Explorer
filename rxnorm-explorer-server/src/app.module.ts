@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SearchModule } from './search/search.module';
 import { DrugModule } from './drug/drug.module';
@@ -9,6 +7,7 @@ import { buildDataSourceOptions } from './db/dataSourceOptions';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { validate } from './config/env.validation';
+import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
@@ -34,9 +33,8 @@ import { validate } from './config/env.validation';
     SearchModule,
     DrugModule,
   ],
-  controllers: [AppController],
+  controllers: [HealthController],
   providers: [
-    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
