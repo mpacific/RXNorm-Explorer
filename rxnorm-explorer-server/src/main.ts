@@ -13,9 +13,10 @@ export function configureApp(app: INestApplication): INestApplication {
 
   app.use(helmet());
   app.useGlobalPipes(createValidationPipe());
+  // No credentials: the API uses no cookies or auth, so allowing them would
+  // only widen what an allowed origin's scripts could do.
   app.enableCors({
     origin: config.getOrThrow<string>('CORS_ALLOWED').split(','),
-    credentials: true,
   });
   return app;
 }

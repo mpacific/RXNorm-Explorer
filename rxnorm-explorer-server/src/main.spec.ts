@@ -60,7 +60,6 @@ describe('main', () => {
 
       expect(app.enableCors).toHaveBeenCalledWith({
         origin: ['http://localhost:3000', 'https://rxnorm.example'],
-        credentials: true,
       });
     });
 

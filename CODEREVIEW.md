@@ -93,7 +93,9 @@ There is no global `ValidationPipe` and no DTOs. Controller parameter types are 
 
 **Fix:** validate the env (see Q4). Document the reverse-proxy setup when there is one, and use the Redis throttler storage if the API ever runs on more than one instance.
 
-### S6 — Low — CORS sends `credentials: true` with no need for it
+### ~~S6 — Low — CORS sends `credentials: true` with no need for it~~ ✅ Fixed
+
+> **Fixed** — on `fix/s6-cors-credentials`: removed `credentials: true`. The e2e suite checks that `Access-Control-Allow-Credentials` is absent.
 
 `main.ts:24-27`. The API uses no cookies or auth, so `Access-Control-Allow-Credentials` only widens what a whitelisted origin can do. **Fix:** remove `credentials: true`.
 

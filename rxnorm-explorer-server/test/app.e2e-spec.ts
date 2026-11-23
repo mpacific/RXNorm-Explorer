@@ -124,6 +124,9 @@ describe('RxNorm Explorer API (e2e)', () => {
       expect(response.headers['access-control-allow-origin']).toBe(
         'http://localhost:3000',
       );
+      expect(
+        response.headers['access-control-allow-credentials'],
+      ).toBeUndefined();
     });
 
     it('does not allow other origins', async () => {
