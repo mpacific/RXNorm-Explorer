@@ -35,7 +35,8 @@ describe('datasource', () => {
     expect(loadDatasource(DATABASE_ENV).dataSourceOptions).toMatchObject({
       type: 'mysql',
       host: 'db.internal',
-      port: '3306',
+      // a number, though the environment only holds strings
+      port: 3306,
       username: 'rxnorm_app',
       password: 'secret',
       database: 'rxnorm',

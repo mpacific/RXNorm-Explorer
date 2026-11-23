@@ -81,7 +81,9 @@ There is no global `ValidationPipe` and no DTOs. Controller parameter types are 
 - Add a `SearchQueryDto` (`@IsString() @Length(1, 200) searchTerm`, `@IsIn(['STR','RXCUI','TTY']) sortField`, `@IsIn(['asc','desc','ASC','DESC']) sortDirection`, `@IsOptional() @IsString() cursor`, `@IsOptional() @IsInt() cursorId`).
 - Use `@Param('id', ParseIntPipe)` in the drug controller.
 
-### S5 — Low — Rate limiting is per IP with no proxy awareness, and its config isn't validated
+### ~~S5 — Low — Rate limiting is per IP with no proxy awareness, and its config isn't validated~~ 🟡 Partly fixed
+
+> **Partly fixed** — on `fix/q4-config-validation`: `THROTTLE_MS`/`THROTTLE_LIMIT` must now be positive integers, so `THROTTLE_MS=60s` stops startup. **Not done:** proxy-aware keying and Redis storage. There is no proxy or second instance yet, so these stay as notes for when there is.
 
 - `ThrottlerGuard` keys on `req.ip`. Behind a reverse proxy or load balancer, every user shares the proxy's IP, so one heavy user throttles everyone. If `trust proxy` is turned on later, configure it narrowly (and patch `proxy-addr`, see S1).
 - `app.module.ts:21-22`: `Number(process.env.THROTTLE_MS!)` becomes `NaN` for a value like `"60s"`. `main.ts:15` only checks that the value is present, not that it's a number.
@@ -179,7 +181,9 @@ The server joins NDCs with `', '` (`drug.service.ts:50`). The client splits on `
 
 `1790698212730-add-relations-to-tables.ts:5-9` turns off `FOREIGN_KEY_CHECKS` around `ADD CONSTRAINT`, so existing orphan rows aren't checked. If the statement fails, checks stay off on that pooled connection. `ON DELETE SET NULL ON UPDATE CASCADE` also has little purpose on read-only reference data. **Fix:** check for orphans first (`SELECT COUNT(*) FROM RXNSAT s LEFT JOIN RXNCONSO c USING (RXAUI) WHERE c.id IS NULL`) and add the FK with checks on. Or drop the FK, since nothing relies on it at runtime.
 
-### C11 — Low — Bootstrap errors are unhandled
+### ~~C11 — Low — Bootstrap errors are unhandled~~ ✅ Fixed
+
+> **Fixed** — on `fix/q4-config-validation`. The `HttpException` startup checks are gone, because config validation covers them. `bootstrap()` now ends in `.catch(…process.exit(1))`.
 
 `main.ts:30` calls `bootstrap()` as a floating promise (this is the only ESLint warning). On top of that, `main.ts:9-19` throws `HttpException`s, which are meant for HTTP responses, during startup. **Fix:** use `bootstrap().catch((e) => { console.error(e); process.exit(1); })`, throw plain `Error`s, or better, move the checks into config validation (Q4).
 
@@ -261,7 +265,9 @@ The client imports `../../../rxnorm-explorer-server/types/drug` (`drugDetail.tsx
 - Client `package.json`: `rxjs` is unused. `dotenv` is only imported in `layout.tsx:1`, and Next already loads `.env*` itself, so remove both.
 - `@types/node` is `^20` in the client while the project requires Node 24.
 
-### Q4 — Validate config once, at startup
+### ~~Q4 — Validate config once, at startup~~ ✅ Fixed
+
+> **Fixed** — on `fix/q4-config-validation`. `ConfigModule.forRoot({ validate })` checks every variable against a class-validator schema (`src/config/env.validation.ts`) and converts numbers. TypeORM and the throttler use `forRootAsync` with the validated `ConfigService`. The options builder (`src/db/dataSourceOptions.ts`) is shared with the migration CLI.
 
 `datasource.ts:9` creates a `ConfigService` by hand. `getOrThrow<number>('DATABASE_PORT')` actually returns a string. The throttle and CORS checks live in `main.ts`. **Fix:** use `ConfigModule.forRoot({ validate })` with a schema (class-validator or zod) covering every variable, including numeric `THROTTLE_*`, `PORT` and `DATABASE_PORT`. Then read typed values from `ConfigService` everywhere, using `ThrottlerModule.forRootAsync` and `TypeOrmModule.forRootAsync`.
 
