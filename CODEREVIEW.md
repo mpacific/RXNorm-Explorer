@@ -18,7 +18,7 @@ The core of the app is in good shape. SQL is parameterized. The one value interp
 
 The main problems are around the code rather than in it:
 
-1. **Dependencies have known vulnerabilities**, including a critical advisory against the installed Next.js (16.3.4).
+1. ~~**Dependencies have known vulnerabilities**, including a critical advisory against the installed Next.js (16.3.4).~~ ✅
 2. **The API connects to MySQL as `root`**, and `local_infile` is still on globally.
 3. **`npm run start:prod` is broken.** The build writes `dist/src/main.js`, but the script runs `dist/main`.
 4. **4 of the 5 unit test suites fail**, and the only e2e test checks the scaffold's "Hello World".
@@ -29,7 +29,9 @@ The main problems are around the code rather than in it:
 
 ## 1. Security
 
-### S1 — High — Dependencies with known vulnerabilities (both packages)
+### ~~S1 — High — Dependencies with known vulnerabilities (both packages)~~ ✅ Fixed
+
+> **Fixed** on `fix/s1-dependency-audit`: `npm audit fix` in both packages (Next is now 16.4.6, and `sharp` is 0.35.5). `npm audit --omit=dev` reports 0 vulnerabilities in both. 19 moderate dev-only advisories (glob/minimatch under the Nest CLI and Jest) are left, because fixing them needs breaking `--force` upgrades. The CI audit step is covered under D2.
 
 `npm audit --omit=dev` output:
 
@@ -305,7 +307,7 @@ Add a workflow that runs, for both packages: `npm ci`, `lint`, `tsc --noEmit`, `
 
 | # | Item | Effort |
 |---|---|---|
-| 1 | S1: `npm audit fix` in both packages | Minutes |
+| 1 | ~~S1: `npm audit fix` in both packages~~ ✅ | Minutes |
 | 2 | S2 + S3: read-only app DB user; turn `local_infile` off | Minutes |
 | 3 | C1: fix `start:prod` (move `types/` under `src/`) | Small |
 | 4 | S4: `ValidationPipe` + DTOs + `ParseIntPipe` | Small |
