@@ -18,7 +18,9 @@ describe('SearchBox', () => {
     render(<SearchBox searchTerm="acetaminophen" />);
 
     expect(input()).toHaveValue('acetaminophen');
-    expect(screen.getByText('Hit enter to submit search')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Press Enter or select Search/)
+    ).toBeInTheDocument();
   });
 
   it('searches when Enter is pressed', async () => {
@@ -27,6 +29,18 @@ describe('SearchBox', () => {
     await userEvent.type(input(), 'ibuprofen{Enter}');
 
     expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith('/search?search=ibuprofen', {
+      scroll: false,
+    });
+  });
+
+  it('is a search form that the button also submits', async () => {
+    render(<SearchBox searchTerm="" />);
+
+    expect(screen.getByRole('search')).toContainElement(input());
+    await userEvent.type(input(), 'ibuprofen');
+    await userEvent.click(screen.getByRole('button', { name: 'Search' }));
+
     expect(push).toHaveBeenCalledWith('/search?search=ibuprofen', {
       scroll: false,
     });
