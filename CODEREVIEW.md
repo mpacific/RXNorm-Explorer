@@ -248,7 +248,9 @@ The server-component approach also makes the page show content on first load and
 
 ## 4. Code quality and maintainability
 
-### Q1 — `@Res()` bypasses Nest's response pipeline
+### ~~Q1 — `@Res()` bypasses Nest's response pipeline~~ ✅ Fixed
+
+> **Fixed** — on `fix/q1-remove-res`. Both controllers now return their result (`Promise<Drug>` / `Promise<SearchResults>`), so interceptors and `@Header()` apply again. The `serchService` typo from Q5 was fixed at the same time.
 
 `drug.controller.ts:20` and `search.controller.ts:17` take the Express `res` and call `res.status(200).json(...)`. That opts out of interceptors, serialization and `@Header()`/`@HttpCode()` decorators, and it's harder to test. **Fix:** `return drug;` / `return drugs;`. The status is 200 by default.
 

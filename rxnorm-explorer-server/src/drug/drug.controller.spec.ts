@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus, INestApplication } from '@nestjs/common';
-import type { Response } from 'express';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { DrugController } from './drug.controller';
@@ -44,16 +43,9 @@ describe('DrugController', () => {
   });
 
   describe('getDrug', () => {
-    const mockResponse = () => {
-      const res = { status: jest.fn(), json: jest.fn() };
-      res.status.mockReturnValue(res);
-      res.json.mockReturnValue(res);
-      return res;
-    };
-
     it('rejects a missing id with a 400', async () => {
       const error = await rejectionOf<HttpException>(
-        controller.getDrug({ id: '0' }, mockResponse() as unknown as Response),
+        controller.getDrug({ id: '0' }),
       );
 
       expect(error).toBeInstanceOf(HttpException);
@@ -61,15 +53,11 @@ describe('DrugController', () => {
       expect(drugService.getDrug).not.toHaveBeenCalled();
     });
 
-    it('responds with the drug', async () => {
+    it('returns the drug', async () => {
       drugService.getDrug.mockResolvedValue(drug);
-      const res = mockResponse();
 
-      await controller.getDrug({ id: '127' }, res as unknown as Response);
-
+      await expect(controller.getDrug({ id: '127' })).resolves.toBe(drug);
       expect(drugService.getDrug).toHaveBeenCalledWith(127);
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith(drug);
     });
   });
 

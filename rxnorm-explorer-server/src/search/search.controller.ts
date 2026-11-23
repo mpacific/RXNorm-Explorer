@@ -1,26 +1,20 @@
-import { Controller, Get, Query, Res } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { SearchService } from './search.service';
-import type { Response } from 'express';
 import type { SearchResults } from '../types/searchResults';
 import { SearchQueryDto } from './dto/search-query.dto';
 
 @Controller('search')
 export class SearchController {
-  constructor(private readonly serchService: SearchService) {}
+  constructor(private readonly searchService: SearchService) {}
 
   @Get()
-  async searchDrugs(
-    @Query() query: SearchQueryDto,
-    @Res() res: Response,
-  ): Promise<Response> {
-    const drugs: SearchResults = await this.serchService.searchDrugs(
+  searchDrugs(@Query() query: SearchQueryDto): Promise<SearchResults> {
+    return this.searchService.searchDrugs(
       query.searchTerm,
       query.cursor,
       query.cursorId,
       query.sortField,
       query.sortDirection,
     );
-
-    return res.status(200).json(drugs);
   }
 }
