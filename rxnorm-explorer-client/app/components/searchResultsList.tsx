@@ -1,9 +1,11 @@
 import {
   DataGrid,
+  GridRenderCellParams,
   GridRowParams,
   GridSortDirection,
   GridSortModel,
 } from '@mui/x-data-grid';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { SearchResult } from '../types/searchResult';
@@ -45,6 +47,11 @@ export default function SearchResultsList(props: {
       field: 'STR',
       headerName: 'Drug Name',
       width: 600,
+      // A real link, so the drug can be reached by keyboard and opened in a
+      // new tab; the row click below is only a shortcut for mouse users.
+      renderCell: (params: GridRenderCellParams<SearchResult>) => (
+        <Link href={`/drug/${params.row.RXAUI}`}>{params.row.STR}</Link>
+      ),
     },
     {
       field: 'RXCUI',
@@ -127,7 +134,12 @@ export default function SearchResultsList(props: {
       pageSizeOptions={[50]}
       rows={rows}
       columns={columns}
-      onRowClick={(params: GridRowParams<SearchResult>) => {
+      onRowClick={(params: GridRowParams<SearchResult>, event) => {
+        // A click on the link itself is the link's to handle (including
+        // middle-click and modifier keys); don't navigate twice.
+        if ((event.target as Element).closest('a')) {
+          return;
+        }
         router.push(`/drug/${params.row.RXAUI}`);
       }}
       rowCount={props.totalCount || 0}

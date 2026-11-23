@@ -223,7 +223,7 @@ All timings below are from the local database (MySQL 26.7, the full prescribable
 
 ### ~~P1 — Medium — Short search terms scan most of the table, twice~~ 🟡 Partly fixed
 
-> **Partly fixed** — on `fix/p1-search-cost` (option 1): words shorter than 2 characters are left out of the name `LIKE`, though the whole term still matches RXCUI/NDC exactly. `a` no longer scans and counts ~96k rows. **Measured and not done:** (a) `COUNT(*) OVER()` in the page query was *slower* than the separate count for `a` (306 ms against 149 ms), so I dropped that idea. (b) A capped count is cheap (50 ms against 149 ms), but the grid's server-side paging uses the total as its row count, so a cap would block paging past it. That needs a UX decision ("1,000+" with open-ended paging). (c) The ngram FULLTEXT index is a bigger change. **Still open:** the search box doesn't yet tell people that one-letter words are ignored.
+> **Partly fixed** — on `fix/p1-search-cost` (option 1): words shorter than 2 characters are left out of the name `LIKE`, though the whole term still matches RXCUI/NDC exactly. `a` no longer scans and counts ~96k rows. **Measured and not done:** (a) `COUNT(*) OVER()` in the page query was *slower* than the separate count for `a` (306 ms against 149 ms), so I dropped that idea. (b) A capped count is cheap (50 ms against 149 ms), but the grid's server-side paging uses the total as its row count, so a cap would block paging past it. That needs a UX decision ("1,000+" with open-ended paging). (c) The ngram FULLTEXT index is a bigger change. The search box's helper text says so (added under Q6).
 
 The name matcher is `STR LIKE '%word%'`, which can't use an index. On the first page the count query and the page query each do that scan, in parallel:
 
@@ -317,7 +317,9 @@ The client imports `../../../rxnorm-explorer-server/types/drug` (`drugDetail.tsx
 - Server `tsconfig.json` has `noImplicitAny: false` and `strictBindCallApply: false`. Turn on `"strict": true`, since the codebase is small enough to fix what that surfaces.
 - `layout.tsx:37` wraps `<body>` in `AppRouterCacheProvider`. MUI's docs put the provider inside `<body>`.
 
-### Q6 — Accessibility and UX
+### ~~Q6 — Accessibility and UX~~ ✅ Fixed
+
+> **Fixed** — on `fix/q6-accessibility`. (1) Each drug name in the results is a `<Link href="/drug/<RXAUI>">`. Clicking the rest of the row still opens it, and clicks on the link are left to the link. (2) The search box is a `<form role="search">` with a visible **Search** submit button, replacing the `onKeyUp` Enter handler, so IME composition no longer triggers a search. Its helper text also says that one-letter words are ignored (see P1). (3) The loading message has `role="status"` and the error message has `role="alert"`.
 
 - **Rows aren't links.** Search results navigate only through `onRowClick` (`searchResultsList.tsx:129`), so keyboard users can't reach them, and nobody can middle-click or open one in a new tab. Render the name cell as a `<Link href={`/drug/${id}`}>`.
 - **The search runs on `onKeyUp` Enter** (`searchBox.tsx:20`) with no `<form>` and no submit button. This fires during IME composition (CJK input) and isn't announced as a search form. **Fix:** wrap it in a `<form role="search" onSubmit>` and add a visible submit button.
