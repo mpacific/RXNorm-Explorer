@@ -29,7 +29,7 @@ export default function SearchResultsList(props: {
   ];
 
   const router = useRouter();
-  const [paginationModel, setPagionationModel] = useState({
+  const [paginationModel, setPaginationModel] = useState({
     page: 0,
     pageSize: 50,
   });
@@ -93,7 +93,7 @@ export default function SearchResultsList(props: {
       });
     }
 
-    setPagionationModel(newPaginationModel);
+    setPaginationModel(newPaginationModel);
   };
 
   const handleSortingModelChange = (newSortingModel: GridSortModel) => {
@@ -119,7 +119,7 @@ export default function SearchResultsList(props: {
     // The cursors we collected describe the old ordering, so drop them and
     // start again from the first page.
     setPageCursors(FIRST_PAGE);
-    setPagionationModel({ ...paginationModel, page: 0 });
+    setPaginationModel({ ...paginationModel, page: 0 });
   };
 
   return (

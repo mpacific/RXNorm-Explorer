@@ -10,6 +10,8 @@ import { RXNSAT } from '../db/entities/RXNSAT.entity';
 
 // The inverse side of each relationship. RXNREL stores both directions, so
 // leaving these out keeps each relationship to one row.
+// The client labels the forward side (RELA_LABELS in drugDetail.tsx); keep
+// the two in step.
 const INVERSE_RELAS = [
   'inverse_isa',
   'ingredient_of',

@@ -307,7 +307,9 @@ The client imports `../../../rxnorm-explorer-server/types/drug` (`drugDetail.tsx
 
 `datasource.ts:9` creates a `ConfigService` by hand. `getOrThrow<number>('DATABASE_PORT')` actually returns a string. The throttle and CORS checks live in `main.ts`. **Fix:** use `ConfigModule.forRoot({ validate })` with a schema (class-validator or zod) covering every variable, including numeric `THROTTLE_*`, `PORT` and `DATABASE_PORT`. Then read typed values from `ConfigService` everywhere, using `ThrottlerModule.forRootAsync` and `TypeOrmModule.forRootAsync`.
 
-### Q5 — Small cleanups
+### ~~Q5 — Small cleanups~~ 🟡 Partly fixed
+
+> **Partly fixed** — on `fix/q5-cleanups`, except where noted. `setPagionationModel` → `setPaginationModel` (`serchService` was fixed under Q1). `drugDetail.tsx` builds `rows` with `.map`. Server `"strict": true` and `noFallthroughCasesInSwitch` are on; this surfaced no errors. `strictPropertyInitialization` stays off, because TypeORM and class-transformer fill those properties. `AppRouterCacheProvider` moved inside `<body>` under P5. **Not done:** the single shared RELA module. It is a runtime import, so Turbopack refuses files outside the client root, and widening `turbopack.root` would make it watch the server's `node_modules` and the MySQL data directory. Both lists now carry "keep in step" comments, and a proper fix comes with the shared package in Q2.
 
 - Typos: `serchService` (`search.controller.ts:8`) and `setPagionationModel` (`searchResultsList.tsx:32`).
 - `drugDetail.tsx:67` uses `.map` only for its side effect (pushing into `rows`). Use `const rows = …map(…)`.

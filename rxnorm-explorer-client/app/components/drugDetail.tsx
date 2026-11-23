@@ -15,24 +15,26 @@ import { RelatedDrug } from '../../../rxnorm-explorer-server/src/types/relatedDr
 import { ReactElement, useState } from 'react';
 import { DataGrid, GridRenderCellParams } from '@mui/x-data-grid';
 
-const translateRELA = (RELA: string): string => {
-  const relaMap: Record<string, string> = {
-    isa: 'is an instance of',
-    has_ingredient: 'has ingredient',
-    has_dose_form: 'has dose form',
-    consists_of: 'consists of',
-    has_tradename: 'is the trade name of',
-    constitutes: 'constitutes',
-    has_precise_ingredient: 'has precise ingredient',
-    has_doseformgroup: 'has dose form group',
-    has_ingredients: 'has ingredients',
-    has_part: 'has part',
-    has_boss: 'has basis of strength substance',
-    has_form: 'has form',
-  };
-
-  return relaMap[RELA] ? relaMap[RELA] : RELA;
+// Keep in step with INVERSE_RELAS in the server's drug.service.ts: these are
+// the forward relationships it returns. (Sharing one module needs a shared
+// package; see CODEREVIEW.md Q2.)
+const RELA_LABELS: Record<string, string> = {
+  isa: 'is an instance of',
+  has_ingredient: 'has ingredient',
+  has_dose_form: 'has dose form',
+  consists_of: 'consists of',
+  has_tradename: 'is the trade name of',
+  constitutes: 'constitutes',
+  has_precise_ingredient: 'has precise ingredient',
+  has_doseformgroup: 'has dose form group',
+  has_ingredients: 'has ingredients',
+  has_part: 'has part',
+  has_boss: 'has basis of strength substance',
+  has_form: 'has form',
 };
+
+// A new RxNorm release can add relationships; those show as they are
+const describeRela = (rela: string): string => RELA_LABELS[rela] ?? rela;
 
 const linkDrug = (
   pageRxaui: string,
@@ -93,9 +95,8 @@ type DetailRelatedDrug = {
 };
 
 export default function DrugDetail(props: { drug: Drug }) {
-  const rows: DetailRelatedDrug[] = [];
-  props.drug?.RelatedDrugs?.map((drug: RelatedDrug): void => {
-    rows.push({
+  const rows: DetailRelatedDrug[] = (props.drug.RelatedDrugs ?? []).map(
+    (drug: RelatedDrug) => ({
       id: drug.c1_RXAUI + '-' + drug.c2_RXAUI + '-' + drug.r_id,
       c1_name: linkDrug(
         props.drug.RXAUI,
@@ -103,15 +104,15 @@ export default function DrugDetail(props: { drug: Drug }) {
         drug.c1_STR,
         drug.c1_TTY
       ),
-      relationship: translateRELA(drug.r_RELA),
+      relationship: describeRela(drug.r_RELA),
       c2_name: linkDrug(
         props.drug.RXAUI,
         drug.c2_RXAUI,
         drug.c2_STR,
         drug.c2_TTY
       ),
-    });
-  });
+    })
+  );
 
   return (
     <Container>
