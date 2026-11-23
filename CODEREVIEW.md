@@ -155,7 +155,9 @@ There is a second problem. MySQL DDL commits implicitly, so `migrationsTransacti
 2. The logic most worth unit testing is in `SearchService`: the sort-field allow-list fallback, direction normalization, word capping and LIKE escaping, keyset cursor building in both directions, and `totalResults` being present only on the first page.
 3. Add e2e tests against a small fixture database, for example via Testcontainers or a seeded Docker MySQL. Cover paging (no skipped or duplicated rows across a run of equal `STR` values), NDC and RXCUI lookups, a 404 on an unknown drug, and 400s on bad input once S4 is done.
 
-### C5 — Low — NDCs are formatted twice and end up with double spaces
+### ~~C5 — Low — NDCs are formatted twice and end up with double spaces~~ ✅ Fixed
+
+> **Fixed** — on `fix/c5-ndc-array`. The API now returns `NDCs: string[]` in place of the joined `ATV` string, and the client joins the array once. (The old client test used NDCs without spaces, which is why it never caught the double spaces.)
 
 The server joins NDCs with `', '` (`drug.service.ts:50`). The client splits on `','` and joins with `', '` again (`drugDetail.tsx:64,109`), which gives `"a,  b"`. **Fix:** return `NDCs: string[]` from the API and join once in the client.
 

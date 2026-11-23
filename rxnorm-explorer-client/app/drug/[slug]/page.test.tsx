@@ -18,7 +18,7 @@ const drug = (id: number, STR: string): Drug => ({
   RXCUI: String(1000 + id),
   TTY: 'SCD',
   STR,
-  ATV: '',
+  NDCs: [],
   RelatedDrugs: [],
 });
 

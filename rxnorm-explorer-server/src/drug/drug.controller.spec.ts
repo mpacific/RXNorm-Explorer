@@ -19,7 +19,7 @@ describe('DrugController', () => {
     RXCUI: '161',
     TTY: 'IN',
     STR: 'acetaminophen',
-    ATV: '',
+    NDCs: [],
     RelatedDrugs: [],
   };
 

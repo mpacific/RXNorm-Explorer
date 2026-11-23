@@ -98,7 +98,7 @@ describe('DrugService', () => {
   it('returns the drug with its NDCs and related drugs', async () => {
     await expect(service.getDrug(127)).resolves.toEqual({
       ...drugRow,
-      ATV: '00001, 00002',
+      NDCs: ['00001', '00002'],
       RelatedDrugs: relatedRows,
     });
   });
@@ -118,7 +118,7 @@ describe('DrugService', () => {
 
     const drug = await service.getDrug(127);
 
-    expect(drug?.ATV).toBe('');
+    expect(drug?.NDCs).toEqual([]);
   });
 
   it('finds relationships on either side of the concept', async () => {
@@ -185,6 +185,6 @@ describe('DrugService', () => {
 
     expect(relatedQuery.getRawMany).toHaveBeenCalled();
     finishNdcs([]);
-    await expect(pending).resolves.toMatchObject({ ATV: '' });
+    await expect(pending).resolves.toMatchObject({ NDCs: [] });
   });
 });

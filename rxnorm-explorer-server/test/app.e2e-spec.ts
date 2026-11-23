@@ -287,7 +287,7 @@ describe('RxNorm Explorer API (e2e)', () => {
         STR: 'acetaminophen',
         TTY: 'IN',
       });
-      expect(typeof body.ATV).toBe('string');
+      expect(Array.isArray(body.NDCs)).toBe(true);
       expect(body.RelatedDrugs?.length).toBeGreaterThan(0);
     });
 
@@ -313,7 +313,7 @@ describe('RxNorm Explorer API (e2e)', () => {
         .get(`/drug/${withNdc.id}`)
         .expect(200)) as { body: Drug };
 
-      expect(body.ATV.split(', ')).toContain(withNdc.NDC);
+      expect(body.NDCs).toContain(withNdc.NDC);
     });
 
     it('rejects an id that is not a whole number', () =>

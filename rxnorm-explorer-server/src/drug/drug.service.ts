@@ -86,7 +86,7 @@ export class DrugService {
         .getRawMany<RelatedDrug>(),
     ]);
 
-    drug.ATV = NDCs.map((NDC) => NDC.ATV).join(', ');
+    drug.NDCs = NDCs.map((NDC) => NDC.ATV);
     drug.RelatedDrugs = relatedDrugs;
 
     return drug;

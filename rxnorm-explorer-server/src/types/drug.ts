@@ -6,6 +6,7 @@ export type Drug = {
   RXAUI: string;
   RXCUI: string;
   STR: string;
-  ATV: string;
+  // Every NDC (package code) for this atom
+  NDCs: string[];
   RelatedDrugs?: RelatedDrugs;
 };

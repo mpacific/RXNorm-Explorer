@@ -61,8 +61,6 @@ type DetailRelatedDrug = {
 };
 
 export default function DrugDetail(props: { drug: Drug }) {
-  const ndcArray = props.drug?.ATV?.split(',');
-
   const rows: DetailRelatedDrug[] = [];
   props.drug?.RelatedDrugs?.map((drug: RelatedDrug): void => {
     rows.push({
@@ -106,7 +104,7 @@ export default function DrugDetail(props: { drug: Drug }) {
               >
                 {props.drug.TTY}
               </TableCell>
-              <TableCell>{ndcArray?.join(', ') || 'None'}</TableCell>
+              <TableCell>{props.drug.NDCs.join(', ') || 'None'}</TableCell>
             </TableRow>
           </TableBody>
         </Table>
