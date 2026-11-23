@@ -24,7 +24,13 @@ export function buildDataSourceOptions(
     database: config.getOrThrow<string>('DATABASE_NAME'),
     synchronize: false,
     migrationsRun: false,
-    migrationsTransactionMode: 'all',
+    // MySQL commits DDL implicitly, so a transaction can't undo a migration
+    // that fails partway. 'each' at least records every migration as soon
+    // as it finishes; with 'all', a failure would roll back the records of
+    // earlier migrations whose changes had already been committed, and the
+    // next run would try to apply them again. Keep migrations small for the
+    // same reason.
+    migrationsTransactionMode: 'each',
     migrations: [`${__dirname}/migrations/**/*.ts`],
     entities: [RXNCONSO, RXNREL, RXNSAT],
     logging: config.get<string>('ENV') === 'development',

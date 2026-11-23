@@ -129,7 +129,9 @@ There is no global `ValidationPipe` and no DTOs. Controller parameter types are 
 
 Option (a) is cleaner.
 
-### C2 — Medium — A migration's `down()` has invalid SQL, so revert fails
+### ~~C2 — Medium — A migration's `down()` has invalid SQL, so revert fails~~ ✅ Fixed
+
+> **Fixed** — The `down()` syntax was already fixed in `a07752f`, before this round. On `fix/c10-fk-migration`, `migrationsTransactionMode` is now `'each'` with a comment explaining why: under `'all'`, a failure rolled back the records of earlier migrations whose DDL had already committed.
 
 `src/db/migrations/1789068330590-add-indexes-to-tables.ts:38-47` uses `DROP INDEX ON RXNCONSO RXNCONSO_RXCUI_idx`. MySQL's syntax is `DROP INDEX <name> ON <table>`, which `1790709373981-drop-unused-str-indexes.ts:7` already uses correctly. `npm run migration:revert` past this migration will throw a parse error.
 
@@ -191,7 +193,9 @@ The server joins NDCs with `', '` (`drug.service.ts:50`). The client splits on `
 
 `synchronize` is off, so nothing breaks today. But `typeorm migration:generate` would produce a destructive diff that tries to shrink columns and recreate indexes. **Fix:** make the entities match the DB (lengths, `@Index('RXNCONSO_RXCUI_idx')` names, remove the `STR` index), or add a comment saying the entities are read-only mappings and must never be used to generate migrations.
 
-### C10 — Low — The FK migration skips validating existing data
+### ~~C10 — Low — The FK migration skips validating existing data~~ ✅ Fixed
+
+> **Fixed** — on `fix/c10-fk-migration`. The FK is now added with `FOREIGN_KEY_CHECKS` left on, so MySQL validates the existing rows. The migration counts orphans first and fails with a query that finds them. The local data has 0 orphans. `ON DELETE SET NULL ON UPDATE CASCADE` is unchanged so fresh and existing databases match. Removing it would need a new migration, and it does no harm on read-only data.
 
 `1790698212730-add-relations-to-tables.ts:5-9` turns off `FOREIGN_KEY_CHECKS` around `ADD CONSTRAINT`, so existing orphan rows aren't checked. If the statement fails, checks stay off on that pooled connection. `ON DELETE SET NULL ON UPDATE CASCADE` also has little purpose on read-only reference data. **Fix:** check for orphans first (`SELECT COUNT(*) FROM RXNSAT s LEFT JOIN RXNCONSO c USING (RXAUI) WHERE c.id IS NULL`) and add the FK with checks on. Or drop the FK, since nothing relies on it at runtime.
 
@@ -343,7 +347,7 @@ Add a workflow that runs, for both packages: `npm ci`, `lint`, `tsc --noEmit`, `
 | 2 | ~~S2 + S3: read-only app DB user; turn `local_infile` off~~ ✅ | Minutes |
 | 3 | ~~C1: fix `start:prod` (move `types/` under `src/`)~~ ✅ | Small |
 | 4 | ~~S4: `ValidationPipe` + DTOs + `ParseIntPipe`~~ ✅ | Small |
-| 5 | C2: fix the migration `down()` SQL | Minutes |
+| 5 | ~~C2: fix the migration `down()` SQL~~ ✅ | Minutes |
 | 6 | C4 + D2: get tests passing, add SearchService tests and CI | Medium |
 | 7 | D1: commit the docker compose setup | Small |
 | 8 | ~~C3: switch public ids to `RXAUI`; document the data reload~~ ✅ | Medium |

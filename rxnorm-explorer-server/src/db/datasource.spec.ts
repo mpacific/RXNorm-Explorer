@@ -48,7 +48,7 @@ describe('datasource', () => {
 
     expect(options.synchronize).toBe(false);
     expect(options.migrationsRun).toBe(false);
-    expect(options.migrationsTransactionMode).toBe('all');
+    expect(options.migrationsTransactionMode).toBe('each');
   });
 
   it('maps the three RxNorm tables and finds the migrations', () => {
