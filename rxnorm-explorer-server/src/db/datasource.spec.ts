@@ -66,8 +66,11 @@ describe('datasource', () => {
     ['development', true],
     ['production', false],
     [undefined, false],
-  ])('logs queries only in development (ENV=%p)', (ENV, logging) => {
-    const options = loadDatasource({ ...DATABASE_ENV, ENV }).dataSourceOptions;
+  ])('logs queries only in development (NODE_ENV=%p)', (NODE_ENV, logging) => {
+    const options = loadDatasource({
+      ...DATABASE_ENV,
+      NODE_ENV,
+    }).dataSourceOptions;
 
     expect(options.logging).toBe(logging);
   });

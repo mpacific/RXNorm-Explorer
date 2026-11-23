@@ -33,6 +33,6 @@ export function buildDataSourceOptions(
     migrationsTransactionMode: 'each',
     migrations: [`${__dirname}/migrations/**/*.ts`],
     entities: [RXNCONSO, RXNREL, RXNSAT],
-    logging: config.get<string>('ENV') === 'development',
+    logging: config.get<string>('NODE_ENV') === 'development',
   };
 }

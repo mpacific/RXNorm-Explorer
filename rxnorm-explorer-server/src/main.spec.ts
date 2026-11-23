@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { bootstrap, configureApp } from './main';
 import { AppModule } from './app.module';
+import { requestLogger } from './request-logger.middleware';
 
 // Importing main pulls in AppModule, whose data source reads its settings at
 // import time. Nothing here connects to a database.
@@ -16,6 +17,7 @@ describe('main', () => {
 
   const mockApp = () => ({
     use: jest.fn(),
+    enableShutdownHooks: jest.fn(),
     useGlobalPipes: jest.fn(),
     enableCors: jest.fn(),
     listen: jest.fn().mockResolvedValue(undefined),
@@ -76,6 +78,13 @@ describe('main', () => {
       expect(app.use).toHaveBeenCalled();
       expect(app.enableCors).toHaveBeenCalled();
       expect(app.listen).toHaveBeenCalledWith(6109);
+    });
+
+    it('closes cleanly on shutdown signals and logs each request', async () => {
+      await bootstrap();
+
+      expect(app.enableShutdownHooks).toHaveBeenCalled();
+      expect(app.use).toHaveBeenCalledWith(requestLogger);
     });
 
     // Missing or malformed settings are caught by ConfigModule's validation

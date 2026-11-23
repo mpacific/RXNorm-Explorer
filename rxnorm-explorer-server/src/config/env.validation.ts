@@ -22,9 +22,11 @@ export class EnvironmentVariables {
   @Max(65535)
   PORT: number = 3000;
 
+  // The standard Node variable, which Nest and Next also read. Only
+  // 'development' changes anything here: it turns on query logging.
   @IsOptional()
   @IsString()
-  ENV?: string;
+  NODE_ENV?: string;
 
   @IsString()
   @IsNotEmpty()

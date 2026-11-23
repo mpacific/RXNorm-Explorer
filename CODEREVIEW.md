@@ -339,7 +339,9 @@ The client imports `../../../rxnorm-explorer-server/types/drug` (`drugDetail.tsx
 
 Add a workflow that runs, for both packages: `npm ci`, `lint`, `tsc --noEmit`, `test`, `build`, and `npm audit --omit=dev --audit-level=high`. That would have caught C1, C4 and S1.
 
-### D3 — Operational gaps
+### ~~D3 — Operational gaps~~ ✅ Fixed
+
+> **Fixed** — on `fix/d3-operations`. `app.enableShutdownHooks()` is on; the built server exits cleanly on SIGTERM. A request-logger middleware writes one line per request, for example `GET /search 200 91ms`, leaving out the query string so search terms aren't logged. The health endpoint came under Q3, and the data refresh is documented under C3. `ENV` is renamed to `NODE_ENV` in the schema, the datasource and `.env.example`. **Action for you:** your local `.env` still says `ENV=…`, so rename it to `NODE_ENV` to keep SQL logging in development.
 
 - **Graceful shutdown:** call `app.enableShutdownHooks()` so DB connections close cleanly on `SIGTERM`.
 - **Request logging:** there is none, so add some, along with a health endpoint (Q3).

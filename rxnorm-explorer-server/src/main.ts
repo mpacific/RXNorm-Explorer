@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 import { type INestApplication } from '@nestjs/common';
 import helmet from 'helmet';
 import { createValidationPipe } from './config/validation-pipe';
+import { requestLogger } from './request-logger.middleware';
 
 // Split out from bootstrap so the e2e tests can apply the same middleware to
 // the app they build.
@@ -25,6 +26,10 @@ export function configureApp(app: INestApplication): INestApplication {
 // the app is created, so a bad or missing variable stops startup there.
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  // Close the database pool cleanly on SIGTERM/SIGINT (deploys, Ctrl-C)
+  app.enableShutdownHooks();
+  // Here rather than in configureApp, to keep it out of the tests' output
+  app.use(requestLogger);
   configureApp(app);
   await app.listen(app.get(ConfigService).getOrThrow<number>('PORT'));
 }
