@@ -8,7 +8,7 @@ describe('ErrorMessage', () => {
   it('labels the error and shows its message', () => {
     render(<ErrorMessage searchError="Search results error: Bad Request" />);
 
-    expect(screen.getByText('Error:')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Error:');
     expect(
       screen.getByText(/Search results error: Bad Request/)
     ).toBeInTheDocument();
@@ -26,7 +26,7 @@ describe('LoadingMessage', () => {
   it('says it is loading', () => {
     render(<LoadingMessage />);
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Loading...');
   });
 });
 

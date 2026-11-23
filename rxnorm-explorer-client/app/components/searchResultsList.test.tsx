@@ -14,6 +14,7 @@ const resultsPage = (page: number, size = 50): SearchResult[] =>
     const n = page * 50 + i + 1;
     return {
       id: n,
+      RXAUI: `A${n}`,
       RXCUI: String(1000 + n),
       TTY: 'SCD',
       STR: `drug ${String(n).padStart(3, '0')}`,
@@ -88,12 +89,33 @@ describe('SearchResultsList', () => {
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
-  it('opens a drug when its row is clicked', async () => {
+  it('links each drug name to its page by RXAUI', () => {
     render(<SearchResultsList {...props()} />);
 
-    await userEvent.click(screen.getByText('drug 002'));
+    expect(screen.getByRole('link', { name: 'drug 002' })).toHaveAttribute(
+      'href',
+      '/drug/A2'
+    );
+  });
 
-    expect(push).toHaveBeenCalledWith('/drug/2');
+  it('opens a drug when the rest of its row is clicked', async () => {
+    render(<SearchResultsList {...props()} />);
+
+    await userEvent.click(screen.getByText('1002')); // its RXCUI cell
+
+    // by RXAUI, not the internal id
+    expect(push).toHaveBeenCalledWith('/drug/A2');
+  });
+
+  it('leaves a click on the name to the link', async () => {
+    render(<SearchResultsList {...props()} />);
+    const link = screen.getByRole('link', { name: 'drug 002' });
+    // Stop jsdom from trying to follow it
+    link.addEventListener('click', (e) => e.preventDefault());
+
+    await userEvent.click(link);
+
+    expect(push).not.toHaveBeenCalled();
   });
 
   describe('paging', () => {

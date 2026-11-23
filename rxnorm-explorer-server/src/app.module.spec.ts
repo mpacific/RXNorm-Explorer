@@ -2,7 +2,9 @@ import { MODULE_METADATA } from '@nestjs/common/constants';
 import type { DynamicModule, Provider } from '@nestjs/common';
 
 // AppModule reads its settings when it loads, so each test loads a fresh copy
-// against its own environment. Nothing here connects to a database.
+// against its own environment. ConfigModule validates that environment at
+// import, so ENV has to be complete: a gap would otherwise be filled from a
+// developer's .env and only fail where there is none (CI). Nothing here connects to a database.
 jest.mock('dotenv/config', () => ({}));
 
 const ENV = {
@@ -11,6 +13,7 @@ const ENV = {
   DATABASE_USER: 'rxnorm_app',
   DATABASE_PASSWORD: 'secret',
   DATABASE_NAME: 'rxnorm',
+  CORS_ALLOWED: 'http://localhost:3000',
   THROTTLE_MS: '5000',
   THROTTLE_LIMIT: '10',
 };
@@ -27,8 +30,7 @@ const loadAppModule = (env: Record<string, string>) => {
       const load = (path: string) => jest.requireActual<object>(path);
       loaded = {
         ...load('./app.module'),
-        ...load('./app.controller'),
-        ...load('./app.service'),
+        ...load('./health/health.controller'),
         ...load('./search/search.module'),
         ...load('./drug/drug.module'),
         ...load('@nestjs/config'),
@@ -82,30 +84,35 @@ describe('AppModule', () => {
 
   it('throttles every route with the configured window and limit', async () => {
     const { AppModule, ThrottlerModule, ThrottlerGuard, APP_GUARD } =
-      loadAppModule({ ...ENV, THROTTLE_MS: '60000', THROTTLE_LIMIT: '25' });
+      loadAppModule(ENV);
 
     const throttler = (await importsOf(AppModule)).find(
       (imported): imported is DynamicModule =>
         'module' in imported && imported.module === ThrottlerModule,
     );
-    const options = (
-      throttler?.providers as { useValue?: { throttlers?: unknown[] } }[]
-    ).find((provider) => provider.useValue?.throttlers)?.useValue;
+    // The options come from the validated config, so call the factory with
+    // a stand-in ConfigService holding already-converted numbers.
+    const factory = (
+      throttler?.providers as {
+        useFactory?: (config: unknown) => { throttlers?: unknown[] };
+      }[]
+    ).find((provider) => provider.useFactory)?.useFactory;
+    const config = {
+      getOrThrow: (key: string) =>
+        ({ THROTTLE_MS: 60000, THROTTLE_LIMIT: 25 })[key],
+    };
 
-    expect(options?.throttlers).toEqual([{ ttl: 60000, limit: 25 }]);
+    expect(factory?.(config).throttlers).toEqual([{ ttl: 60000, limit: 25 }]);
     expect(
       metadata<Provider[]>(AppModule, MODULE_METADATA.PROVIDERS),
     ).toContainEqual({ provide: APP_GUARD, useClass: ThrottlerGuard });
   });
 
-  it('serves the root route', () => {
-    const { AppModule, AppController, AppService } = loadAppModule(ENV);
+  it('serves the health check', () => {
+    const { AppModule, HealthController } = loadAppModule(ENV);
 
     expect(metadata(AppModule, MODULE_METADATA.CONTROLLERS)).toEqual([
-      AppController,
+      HealthController,
     ]);
-    expect(
-      metadata<Provider[]>(AppModule, MODULE_METADATA.PROVIDERS),
-    ).toContain(AppService);
   });
 });

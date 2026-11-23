@@ -1,13 +1,19 @@
-import 'dotenv/config';
 import type { Metadata } from 'next';
 import './globals.css';
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v16-appRouter';
 import { AppBar, Toolbar, Typography } from '@mui/material';
-import '@fontsource/roboto/300.css';
-import '@fontsource/roboto/400.css';
-import '@fontsource/roboto/500.css';
-import '@fontsource/roboto/700.css';
+import { Roboto } from 'next/font/google';
 import Link from 'next/link';
+import AppThemeProvider from './theme';
+
+// Self-hosted at build time, with only the Latin subset preloaded and a
+// metric-matched fallback so text doesn't shift when the font arrives.
+const roboto = Roboto({
+  weight: ['300', '400', '500', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-roboto',
+});
 
 export const metadata: Metadata = {
   title: 'RXNorm Explorer',
@@ -33,13 +39,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <AppRouterCacheProvider>
-        <body>
-          <Header />
-          <div className="content-root">{children}</div>
-        </body>
-      </AppRouterCacheProvider>
+    <html lang="en" className={roboto.variable}>
+      <body>
+        <AppRouterCacheProvider>
+          <AppThemeProvider>
+            <Header />
+            <div className="content-root">{children}</div>
+          </AppThemeProvider>
+        </AppRouterCacheProvider>
+      </body>
     </html>
   );
 }
