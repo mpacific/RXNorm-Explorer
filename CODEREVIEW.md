@@ -169,7 +169,9 @@ The server joins NDCs with `', '` (`drug.service.ts:50`). The client splits on `
 
 `searchBox.tsx:19` uses an uncontrolled `defaultValue`. On `/search`, if you search "a", then "b", then press Back, the URL and results show "a" but the text box still says "b". **Fix:** render `<SearchBox key={searchTerm} … />` in `search/page.tsx:31`.
 
-### C7 — Low — The README's example API URL breaks requests
+### ~~C7 — Low — The README's example API URL breaks requests~~ ✅ Fixed
+
+> **Fixed** — on `fix/c7-api-url`. The README example no longer has the trailing slash. Both fetches go through a new `apiUrl()` helper (`app/lib/apiUrl.ts`), which joins the base and path with exactly one slash, so either form works.
 
 `README.md:33` gives `http://localhost:6109/` (with a trailing slash). The client builds `${NEXT_PUBLIC_API_URL}/drug/…` (`drug/[slug]/page.tsx:11`, `searchResults.tsx:31`), which produces `//drug/…`. Express doesn't collapse the double slash, so the request won't match the route. **Fix:** remove the trailing slash in the README, and/or build URLs with `new URL('drug/' + id, base)`.
 

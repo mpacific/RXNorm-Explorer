@@ -38,7 +38,7 @@ RxNorm Explorer is a simple search tool to view details about prescribable drugs
   1. Copy `.env.example` to `.env` and populate the variables. `PORT` is the node server port. Set `DATABASE_USER` to the read-only `rxnorm_app` account, and `MIGRATION_DATABASE_USER`/`MIGRATION_DATABASE_PASSWORD` to `rxnorm_migrate`.
   2. Type `npm run migration:run` to add the ids, indexes and keys the app needs.
 - From the `rxnorm-explorer-client` directory:
-  1. Copy `.env.example` to `.env` and populate the variables. The API URL is address to the server API, ie `http://localhost:6109/`
+  1. Copy `.env.example` to `.env` and populate the variables. `NEXT_PUBLIC_API_URL` is the address of the server API, for example `http://localhost:6109`
 - From both `rxnorm-explorer-server` and `rxnorm-explorer-client` type `npm run dev` in the terminal to start the app.
 
 ## Monthly data refresh
