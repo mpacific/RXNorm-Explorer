@@ -252,7 +252,9 @@ The responses are large, the UI is hard to use, and payloads like this hurt on m
 
 `drug.service.ts:42-70`. After the first lookup, the NDC query and the related-drugs query don't depend on each other. **Fix:** run them with `Promise.all`. (The related-drugs query is already efficient: `EXPLAIN` shows an index-merge union on `RXNREL_RXCUI1_idx`/`RXCUI2_idx` and covering lookups on `RXNCONSO_RXCUI_idx`.)
 
-### P4 — Low — Nothing is cached, even though the data changes monthly
+### ~~P4 — Low — Nothing is cached, even though the data changes monthly~~ ✅ Fixed
+
+> **Fixed** — on `fix/p4-cache-headers` (option 1). A `CacheControlInterceptor` sends `Cache-Control: public, max-age=3600` on successful `/search` and `/drug/:rxaui` responses. Express already adds an ETag, so revalidation is cheap. It is an interceptor rather than `@Header()` because Nest applies `@Header()` before the handler runs, which would have made 400s and 404s cacheable too. Tests cover both cases. The server-component option is not done; see P5.
 
 Every drug page is fetched in the browser after hydration (`'use client'` everywhere, `useEffect` fetch), so nothing is cached. RxNorm data changes monthly. **Fix:** any of these would remove most of the load.
 - Send `Cache-Control: public, max-age=3600` (or an ETag tied to the release version) from the API.

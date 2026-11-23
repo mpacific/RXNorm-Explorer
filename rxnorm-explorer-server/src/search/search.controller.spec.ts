@@ -74,6 +74,19 @@ describe('SearchController', () => {
     );
   });
 
+  it('lets results be cached for an hour, but not errors', async () => {
+    searchService.searchDrugs.mockResolvedValue(results);
+    await request(app.getHttpServer())
+      .get('/search?searchTerm=161')
+      .expect(200)
+      .expect('Cache-Control', 'public, max-age=3600');
+
+    const rejected = await request(app.getHttpServer())
+      .get('/search?searchTerm=161&sortField=id')
+      .expect(400);
+    expect(rejected.headers['cache-control']).toBeUndefined();
+  });
+
   it('decodes an encoded cursor', async () => {
     searchService.searchDrugs.mockResolvedValue(results);
 

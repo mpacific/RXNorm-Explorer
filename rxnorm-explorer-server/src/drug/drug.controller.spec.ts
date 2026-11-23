@@ -73,6 +73,24 @@ describe('DrugController', () => {
       },
     );
 
+    it('lets the drug be cached for an hour', async () => {
+      drugService.getDrug.mockResolvedValue(drug);
+
+      await request(app.getHttpServer())
+        .get('/drug/1234567')
+        .expect(200)
+        .expect('Cache-Control', 'public, max-age=3600');
+    });
+
+    it('does not let a 404 be cached', async () => {
+      drugService.getDrug.mockResolvedValue(null);
+
+      const response = await request(app.getHttpServer())
+        .get('/drug/999')
+        .expect(404);
+      expect(response.headers['cache-control']).toBeUndefined();
+    });
+
     it('returns a 404 when there is no such drug', async () => {
       drugService.getDrug.mockResolvedValue(null);
 
