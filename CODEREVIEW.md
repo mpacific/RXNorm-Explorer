@@ -23,7 +23,7 @@ The main problems are around the code rather than in it:
 3. ~~**`npm run start:prod` is broken.** The build writes `dist/src/main.js`, but the script runs `dist/main`.~~ ✅
 4. **4 of the 5 unit test suites fail**, and the only e2e test checks the scaffold's "Hello World".
 5. ~~**There is no request validation.** Malformed query strings cause 500s, and `/drug/127abc` returns drug 127.~~ ✅
-6. **Drug URLs use a surrogate `id`** that the migration assigns. A reload of the RxNorm data will change or remove these ids.
+6. ~~**Drug URLs use a surrogate `id`** that the migration assigns. A reload of the RxNorm data will change or remove these ids.~~ ✅
 
 ---
 
@@ -135,7 +135,9 @@ Option (a) is cleaner.
 
 There is a second problem. MySQL DDL commits implicitly, so `migrationsTransactionMode: 'all'` (`datasource.ts:20`) can't roll back a migration that fails partway. A failure leaves the migration half-applied and still unrecorded. Keep each migration small, or make the steps idempotent.
 
-### C3 — Medium — Drug URLs depend on surrogate ids that won't survive a data reload
+### ~~C3 — Medium — Drug URLs depend on surrogate ids that won't survive a data reload~~ ✅ Fixed
+
+> **Fixed** — on `fix/c3-rxaui-public-ids`. The API route is now `/drug/:rxaui`. Search results and related drugs carry `RXAUI`, and every client link uses it. The `Drug` response no longer includes the surrogate `id`. That `id` now appears only as the keyset `cursorId` in search paging, which is short-lived. The README has a new "Monthly data refresh" section: load into a staging schema, run the migrations, then swap with an atomic `RENAME TABLE`. **Note:** existing `/drug/<id>` bookmarks from before this change will now get a 400.
 
 `/drug/:id` uses `RXNCONSO.id`, an `AUTO_INCREMENT` column added by migration `1788891213859`. RxNorm ships monthly. The NLM load scripts drop and recreate the tables, which has two effects:
 
@@ -338,7 +340,7 @@ Add a workflow that runs, for both packages: `npm ci`, `lint`, `tsc --noEmit`, `
 | 5 | C2: fix the migration `down()` SQL | Minutes |
 | 6 | C4 + D2: get tests passing, add SearchService tests and CI | Medium |
 | 7 | D1: commit the docker compose setup | Small |
-| 8 | C3: switch public ids to `RXAUI`; document the data reload | Medium |
+| 8 | ~~C3: switch public ids to `RXAUI`; document the data reload~~ ✅ | Medium |
 | 9 | P1 + P2: minimum term length / capped count; bound the drug-detail payload | Small–Medium |
 | 10 | P4: caching headers or a server-rendered drug page | Small–Medium |
 | 11 | The remaining Low/Info items, as convenient | — |

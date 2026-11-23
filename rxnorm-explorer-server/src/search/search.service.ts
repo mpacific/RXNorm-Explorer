@@ -115,6 +115,7 @@ export class SearchService {
       page
         .select([
           'rxnconso.id',
+          'rxnconso.RXAUI',
           'rxnconso.TTY',
           'rxnconso.RXCUI',
           'rxnconso.STR',

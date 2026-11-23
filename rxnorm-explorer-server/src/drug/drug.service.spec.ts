@@ -17,7 +17,6 @@ describe('DrugService', () => {
   let relatedQuery: MockQueryBuilder;
 
   const drugRow = {
-    id: 127,
     RXAUI: '1234567',
     RXCUI: '161',
     TTY: 'IN',
@@ -29,11 +28,11 @@ describe('DrugService', () => {
       r_RELA: 'has_ingredient',
       r_RXCUI1: '161',
       r_RXCUI2: '313782',
-      c1_id: 127,
+      c1_RXAUI: '1234567',
       c1_RXCUI: '161',
       c1_TTY: 'IN',
       c1_STR: 'acetaminophen',
-      c2_id: 500,
+      c2_RXAUI: '7654321',
       c2_RXCUI: '313782',
       c2_TTY: 'SCD',
       c2_STR: 'acetaminophen 325 MG Oral Tablet',
@@ -74,29 +73,28 @@ describe('DrugService', () => {
   it('returns null and looks nothing else up when there is no such drug', async () => {
     drugQuery.getRawOne.mockResolvedValue(undefined);
 
-    await expect(service.getDrug(999)).resolves.toBeNull();
+    await expect(service.getDrug('999')).resolves.toBeNull();
 
     expect(ndcQuery.getRawMany).not.toHaveBeenCalled();
     expect(relatedQuery.getRawMany).not.toHaveBeenCalled();
   });
 
-  it('looks the drug up by id', async () => {
-    await service.getDrug(127);
+  it('looks the drug up by RXAUI', async () => {
+    await service.getDrug('1234567');
 
     expect(drugQuery.select).toHaveBeenCalledWith([
-      'rxnconso.id AS id',
       'rxnconso.RXAUI AS RXAUI',
       'rxnconso.RXCUI AS RXCUI',
       'rxnconso.TTY AS TTY',
       'rxnconso.STR AS STR',
     ]);
-    expect(drugQuery.where).toHaveBeenCalledWith('rxnconso.id = :id', {
-      id: 127,
+    expect(drugQuery.where).toHaveBeenCalledWith('rxnconso.RXAUI = :rxaui', {
+      rxaui: '1234567',
     });
   });
 
   it('returns the drug with its NDCs and related drugs', async () => {
-    await expect(service.getDrug(127)).resolves.toEqual({
+    await expect(service.getDrug('1234567')).resolves.toEqual({
       ...drugRow,
       NDCs: ['00001', '00002'],
       RelatedDrugs: relatedRows,
@@ -104,7 +102,7 @@ describe('DrugService', () => {
   });
 
   it("looks NDCs up by the drug's atom", async () => {
-    await service.getDrug(127);
+    await service.getDrug('1234567');
 
     expect(ndcQuery.select).toHaveBeenCalledWith(['rxnsat.ATV AS ATV']);
     expect(ndcQuery.where).toHaveBeenCalledWith(
@@ -116,13 +114,13 @@ describe('DrugService', () => {
   it('gives an empty NDC list when the drug has none', async () => {
     ndcQuery.getRawMany.mockResolvedValue([]);
 
-    const drug = await service.getDrug(127);
+    const drug = await service.getDrug('1234567');
 
     expect(drug?.NDCs).toEqual([]);
   });
 
   it('finds relationships on either side of the concept', async () => {
-    await service.getDrug(127);
+    await service.getDrug('1234567');
 
     expect(relatedQuery.andWhere).toHaveBeenCalledWith(
       '(r.RXCUI1 = :RXCUI OR r.RXCUI2 = :RXCUI)',
@@ -141,7 +139,7 @@ describe('DrugService', () => {
   });
 
   it('leaves out inverse relationships and excluded term types on both sides', async () => {
-    await service.getDrug(127);
+    await service.getDrug('1234567');
 
     expect(relatedQuery.where).toHaveBeenCalledWith('r.RELA IS NOT NULL');
     expect(relatedQuery.andWhere).toHaveBeenCalledWith(
@@ -165,7 +163,7 @@ describe('DrugService', () => {
   });
 
   it('orders related drugs by concept', async () => {
-    await service.getDrug(127);
+    await service.getDrug('1234567');
 
     expect(relatedQuery.orderBy).toHaveBeenCalledWith('r.RXCUI1', 'ASC');
     expect(relatedQuery.addOrderBy).toHaveBeenCalledWith('r.RXCUI2', 'ASC');
@@ -180,7 +178,7 @@ describe('DrugService', () => {
       }),
     );
 
-    const pending = service.getDrug(127);
+    const pending = service.getDrug('1234567');
     await new Promise(process.nextTick);
 
     expect(relatedQuery.getRawMany).toHaveBeenCalled();

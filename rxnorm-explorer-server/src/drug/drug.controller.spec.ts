@@ -1,11 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpException, HttpStatus, INestApplication } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { DrugController } from './drug.controller';
 import { DrugService } from './drug.service';
 import { Drug } from '../types/drug';
-import { rejectionOf } from '../test-utils/testing';
 import { createValidationPipe } from '../config/validation-pipe';
 
 describe('DrugController', () => {
@@ -14,7 +13,6 @@ describe('DrugController', () => {
   const drugService = { getDrug: jest.fn() };
 
   const drug: Drug = {
-    id: 127,
     RXAUI: '1234567',
     RXCUI: '161',
     TTY: 'IN',
@@ -43,41 +41,32 @@ describe('DrugController', () => {
   });
 
   describe('getDrug', () => {
-    it('rejects a missing id with a 400', async () => {
-      const error = await rejectionOf<HttpException>(
-        controller.getDrug({ id: '0' }),
-      );
-
-      expect(error).toBeInstanceOf(HttpException);
-      expect(error.getStatus()).toBe(HttpStatus.BAD_REQUEST);
-      expect(drugService.getDrug).not.toHaveBeenCalled();
-    });
-
     it('returns the drug', async () => {
       drugService.getDrug.mockResolvedValue(drug);
 
-      await expect(controller.getDrug({ id: '127' })).resolves.toBe(drug);
-      expect(drugService.getDrug).toHaveBeenCalledWith(127);
+      await expect(controller.getDrug({ rxaui: '1234567' })).resolves.toBe(
+        drug,
+      );
+      expect(drugService.getDrug).toHaveBeenCalledWith('1234567');
     });
   });
 
-  describe('GET /drug/:id', () => {
+  describe('GET /drug/:rxaui', () => {
     it('returns the drug as JSON', async () => {
       drugService.getDrug.mockResolvedValue(drug);
 
       await request(app.getHttpServer())
-        .get('/drug/127')
+        .get('/drug/1234567')
         .expect(200)
         .expect('Content-Type', /json/)
         .expect(drug);
 
-      // The id is validated and handed to the service as a number
-      expect(drugService.getDrug).toHaveBeenCalledWith(127);
+      expect(drugService.getDrug).toHaveBeenCalledWith('1234567');
     });
 
-    // MySQL would coerce '127abc' to 127 and return that drug
-    it.each(['127abc', 'abc', '1.5', '1e3', '-1'])(
-      'rejects a non-integer id (%p) with a 400',
+    // Before validation, MySQL coerced '127abc' to 127 and returned that drug
+    it.each(['127abc', 'abc', '1.5', '1e3', '-1', '1'.repeat(13)])(
+      'rejects something that is not an RXAUI (%p) with a 400',
       async (id) => {
         await request(app.getHttpServer()).get(`/drug/${id}`).expect(400);
         expect(drugService.getDrug).not.toHaveBeenCalled();
@@ -97,13 +86,13 @@ describe('DrugController', () => {
       drugService.getDrug.mockRejectedValue(new Error('connection lost'));
 
       const response = await request(app.getHttpServer())
-        .get('/drug/127')
+        .get('/drug/1234567')
         .expect(500);
 
       expect(JSON.stringify(response.body)).not.toContain('connection lost');
     });
 
-    it('has no route without an id', async () => {
+    it('has no route without an RXAUI', async () => {
       await request(app.getHttpServer()).get('/drug').expect(404);
       expect(drugService.getDrug).not.toHaveBeenCalled();
     });

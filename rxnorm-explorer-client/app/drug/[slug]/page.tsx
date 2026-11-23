@@ -6,9 +6,10 @@ import DrugDetail from '@/app/components/drugDetail';
 import { Drug } from '../../../../rxnorm-explorer-server/src/types/drug';
 import { useEffect, useState } from 'react';
 
-const getDrug = async (drugId: number): Promise<Drug | null> => {
+// The slug is the drug's RXAUI, which stays the same across RxNorm releases
+const getDrug = async (rxaui: string): Promise<Drug | null> => {
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/drug/${drugId}`
+    `${process.env.NEXT_PUBLIC_API_URL}/drug/${encodeURIComponent(rxaui)}`
   );
 
   if (!response.ok) {
@@ -33,7 +34,7 @@ export default function DrugDetailPage() {
     // response for the previous drug must not overwrite the new one.
     let ignore = false;
 
-    getDrug(Number(slug))
+    getDrug(slug)
       .then((drug) => {
         if (!ignore) {
           setResponse({ slug, drug });

@@ -41,6 +41,32 @@ RxNorm Explorer is a simple search tool to view details about prescribable drugs
   1. Copy `.env.example` to `.env` and populate the variables. The API URL is address to the server API, ie `http://localhost:6109/`
 - From both `rxnorm-explorer-server` and `rxnorm-explorer-client` type `npm run dev` in the terminal to start the app.
 
+## Monthly data refresh
+
+RxNorm ships a new release every month. The NLM load scripts drop and recreate the tables, which also removes the `id` columns, indexes and foreign key that the migrations add. The `migrations` table would still say those migrations had run, so they would not run again. Load each release into a fresh schema and swap it in instead:
+
+1. As root, create a staging schema and give both accounts the same grants on it as on `rxnorm` (see Setup):
+   ```sql
+   CREATE DATABASE rxnorm_next;
+   GRANT SELECT ON rxnorm_next.* TO 'rxnorm_app'@'%';
+   GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, INDEX, REFERENCES ON rxnorm_next.* TO 'rxnorm_migrate'@'%';
+   ```
+2. Import the new release into `rxnorm_next` with the NLM script, as in Setup. Turn `local_infile` on only for the import.
+3. From `rxnorm-explorer-server`, run the migrations against the staging schema: `DATABASE_NAME=rxnorm_next npm run migration:run`.
+4. As root, swap the tables in a single statement. `RENAME TABLE` is atomic, so the API never sees a half-loaded release:
+   ```sql
+   CREATE DATABASE rxnorm_old;
+   RENAME TABLE
+     rxnorm.RXNCONSO TO rxnorm_old.RXNCONSO, rxnorm_next.RXNCONSO TO rxnorm.RXNCONSO,
+     rxnorm.RXNREL TO rxnorm_old.RXNREL, rxnorm_next.RXNREL TO rxnorm.RXNREL,
+     rxnorm.RXNSAT TO rxnorm_old.RXNSAT, rxnorm_next.RXNSAT TO rxnorm.RXNSAT,
+     rxnorm.migrations TO rxnorm_old.migrations, rxnorm_next.migrations TO rxnorm.migrations;
+   ```
+   Add any other tables the NLM script created to the statement in the same way.
+5. Check the app, then `DROP DATABASE rxnorm_old; DROP DATABASE rxnorm_next;`.
+
+Drug pages are addressed by RXAUI, RxNorm's own atom id, so links and bookmarks keep working across releases. A drug that NLM retires in a release will return a 404. The internal `id` columns are renumbered on every load, so a search that is being paged through during the swap starts again from the first page.
+
 ## Testing
 
 - Server (`rxnorm-explorer-server`):

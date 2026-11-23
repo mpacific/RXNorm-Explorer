@@ -13,14 +13,11 @@ import { DrugParamsDto } from './dto/drug-params.dto';
 export class DrugController {
   constructor(private readonly drugService: DrugService) {}
 
-  @Get(':id')
+  // Keyed on RXAUI rather than the surrogate id, so links and bookmarks keep
+  // pointing at the same drug after the monthly data reload.
+  @Get(':rxaui')
   async getDrug(@Param() params: DrugParamsDto): Promise<Drug> {
-    const id = Number(params.id);
-    if (!id) {
-      throw new HttpException('ID is required', HttpStatus.BAD_REQUEST);
-    }
-
-    const drug: Drug | null = await this.drugService.getDrug(id);
+    const drug: Drug | null = await this.drugService.getDrug(params.rxaui);
 
     if (!drug) {
       throw new HttpException('Drug not found', HttpStatus.NOT_FOUND);

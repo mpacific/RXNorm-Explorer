@@ -13,7 +13,6 @@ let slug = '127';
 vi.mock('next/navigation', () => ({ useParams: () => ({ slug }) }));
 
 const drug = (id: number, STR: string): Drug => ({
-  id,
   RXAUI: `A${id}`,
   RXCUI: String(1000 + id),
   TTY: 'SCD',
@@ -64,8 +63,8 @@ describe('DrugDetailPage', () => {
     expect(await screen.findByText(/Failed to fetch/)).toBeInTheDocument();
   });
 
-  it('asks for a slug that is not a number as NaN', async () => {
-    slug = 'tylenol';
+  it('passes the slug on as the RXAUI, encoded', async () => {
+    slug = 'a/b';
     fetch.mockImplementation(
       async () => new Response('{}', { status: 404, statusText: 'Not Found' })
     );
@@ -73,7 +72,7 @@ describe('DrugDetailPage', () => {
     render(<DrugDetailPage />);
 
     await screen.findByText(/Load drug error/);
-    expect(requestedUrl(fetch).pathname).toBe('/drug/NaN');
+    expect(requestedUrl(fetch).pathname).toBe('/drug/a%2Fb');
   });
 
   describe('moving from one drug to another', () => {

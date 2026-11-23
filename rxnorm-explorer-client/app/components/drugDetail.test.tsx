@@ -7,44 +7,44 @@ import { RelatedDrug } from '../../../rxnorm-explorer-server/src/types/relatedDr
 const related = (
   r_id: number,
   r_RELA: string,
-  c1: [number, string, string, string],
-  c2: [number, string, string, string]
+  c1: [string, string, string, string],
+  c2: [string, string, string, string]
 ): RelatedDrug => ({
   r_id,
   r_RELA,
   r_RXCUI1: c1[1],
   r_RXCUI2: c2[1],
-  c1_id: c1[0],
+  c1_RXAUI: c1[0],
   c1_RXCUI: c1[1],
   c1_TTY: c1[2],
   c1_STR: c1[3],
-  c2_id: c2[0],
+  c2_RXAUI: c2[0],
   c2_RXCUI: c2[1],
   c2_TTY: c2[2],
   c2_STR: c2[3],
 });
 
-const acetaminophen: [number, string, string, string] = [
-  127,
+// [RXAUI, RXCUI, TTY, STR]; acetaminophen is the drug the page shows
+const acetaminophen: [string, string, string, string] = [
+  '1234567',
   '161',
   'IN',
   'acetaminophen',
 ];
-const tablet: [number, string, string, string] = [
-  500,
+const tablet: [string, string, string, string] = [
+  '500',
   '313782',
   'SCD',
   'acetaminophen 325 MG Oral Tablet',
 ];
-const tylenol: [number, string, string, string] = [
-  600,
+const tylenol: [string, string, string, string] = [
+  '600',
   '202433',
   'BN',
   'Tylenol',
 ];
 
 const drug = (overrides: Partial<Drug> = {}): Drug => ({
-  id: 127,
   RXAUI: '1234567',
   RXCUI: '161',
   TTY: 'IN',

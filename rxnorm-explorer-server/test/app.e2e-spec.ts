@@ -17,8 +17,8 @@ describe('RxNorm Explorer API (e2e)', () => {
   let db: DataSource;
 
   // An ingredient with plenty of products, and an atom that has an NDC
-  let ingredient: { id: number; RXCUI: string; STR: string };
-  let withNdc: { id: number; RXCUI: string; NDC: string };
+  let ingredient: { id: number; RXAUI: string; RXCUI: string; STR: string };
+  let withNdc: { id: number; RXAUI: string; RXCUI: string; NDC: string };
 
   const excluded = EXCLUDED_TTYS.map((tty) => `'${tty}'`).join(', ');
 
@@ -32,10 +32,10 @@ describe('RxNorm Explorer API (e2e)', () => {
     db = app.get(DataSource);
 
     [ingredient] = await db.query(
-      "SELECT id, RXCUI, STR FROM RXNCONSO WHERE STR = 'acetaminophen' AND TTY = 'IN' LIMIT 1",
+      "SELECT id, RXAUI, RXCUI, STR FROM RXNCONSO WHERE STR = 'acetaminophen' AND TTY = 'IN' LIMIT 1",
     );
     [withNdc] = await db.query(
-      `SELECT c.id, c.RXCUI, s.ATV AS NDC
+      `SELECT c.id, c.RXAUI, c.RXCUI, s.ATV AS NDC
        FROM RXNSAT s JOIN RXNCONSO c ON c.RXAUI = s.RXAUI
        WHERE s.ATN = 'NDC' AND c.TTY NOT IN (${excluded})
        ORDER BY c.id LIMIT 1`,
@@ -158,6 +158,7 @@ describe('RxNorm Explorer API (e2e)', () => {
         expected.slice(0, 50),
       );
       expect(Object.keys(body.searchResults[0]).sort()).toEqual([
+        'RXAUI',
         'RXCUI',
         'STR',
         'TTY',
@@ -275,14 +276,14 @@ describe('RxNorm Explorer API (e2e)', () => {
         .expect(400));
   });
 
-  describe('GET /drug/:id', () => {
+  describe('GET /drug/:rxaui', () => {
     it('returns the drug, its NDCs and its related drugs', async () => {
       const { body } = (await request(app.getHttpServer())
-        .get(`/drug/${ingredient.id}`)
+        .get(`/drug/${ingredient.RXAUI}`)
         .expect(200)) as { body: Drug };
 
       expect(body).toMatchObject({
-        id: Number(ingredient.id),
+        RXAUI: ingredient.RXAUI,
         RXCUI: ingredient.RXCUI,
         STR: 'acetaminophen',
         TTY: 'IN',
@@ -293,7 +294,7 @@ describe('RxNorm Explorer API (e2e)', () => {
 
     it('relates only to this concept, without inverse links or excluded types', async () => {
       const { body } = (await request(app.getHttpServer())
-        .get(`/drug/${ingredient.id}`)
+        .get(`/drug/${ingredient.RXAUI}`)
         .expect(200)) as { body: Drug };
 
       for (const related of body.RelatedDrugs ?? []) {
@@ -310,16 +311,24 @@ describe('RxNorm Explorer API (e2e)', () => {
 
     it("lists the drug's NDCs", async () => {
       const { body } = (await request(app.getHttpServer())
-        .get(`/drug/${withNdc.id}`)
+        .get(`/drug/${withNdc.RXAUI}`)
         .expect(200)) as { body: Drug };
 
       expect(body.NDCs).toContain(withNdc.NDC);
     });
 
-    it('rejects an id that is not a whole number', () =>
+    it('rejects something that is not an RXAUI', () =>
       request(app.getHttpServer())
-        .get(`/drug/${ingredient.id}abc`)
+        .get(`/drug/${ingredient.RXAUI}abc`)
         .expect(400));
+
+    it('does not expose the internal row id', async () => {
+      const { body } = (await request(app.getHttpServer())
+        .get(`/drug/${ingredient.RXAUI}`)
+        .expect(200)) as { body: Drug & { id?: unknown } };
+
+      expect(body.id).toBeUndefined();
+    });
 
     it('returns a 404 for a drug that does not exist', () =>
       request(app.getHttpServer())

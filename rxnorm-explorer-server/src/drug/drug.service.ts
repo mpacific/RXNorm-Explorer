@@ -34,17 +34,16 @@ export class DrugService {
     private rxnsatRepository: Repository<RXNSAT>,
   ) {}
 
-  async getDrug(id: number): Promise<Drug | null> {
+  async getDrug(rxaui: string): Promise<Drug | null> {
     const drug: Drug | null | undefined = await this.rxnconsoRepository
       .createQueryBuilder('rxnconso')
       .select([
-        'rxnconso.id AS id',
         'rxnconso.RXAUI AS RXAUI',
         'rxnconso.RXCUI AS RXCUI',
         'rxnconso.TTY AS TTY',
         'rxnconso.STR AS STR',
       ])
-      .where('rxnconso.id = :id', { id })
+      .where('rxnconso.RXAUI = :rxaui', { rxaui })
       .getRawOne();
 
     if (!drug) {
@@ -66,8 +65,8 @@ export class DrugService {
         .select(['r.id', 'r.RELA', 'r.RXCUI1', 'r.RXCUI2'])
         .innerJoin('RXNCONSO', 'c1', 'r.RXCUI1 = c1.RXCUI')
         .innerJoin('RXNCONSO', 'c2', 'r.RXCUI2 = c2.RXCUI')
-        .addSelect(['c1.id', 'c1.RXCUI', 'c1.TTY', 'c1.STR'])
-        .addSelect(['c2.id', 'c2.RXCUI', 'c2.TTY', 'c2.STR'])
+        .addSelect(['c1.RXAUI', 'c1.RXCUI', 'c1.TTY', 'c1.STR'])
+        .addSelect(['c2.RXAUI', 'c2.RXCUI', 'c2.TTY', 'c2.STR'])
         .where('r.RELA IS NOT NULL')
         .andWhere('r.RELA NOT IN (:...inverseRelas)', {
           inverseRelas: INVERSE_RELAS,
