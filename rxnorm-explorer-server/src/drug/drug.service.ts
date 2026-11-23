@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Drug } from '../../types/drug';
+import { Drug } from '../types/drug';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RXNCONSO } from '../db/entities/RXNCONSO.entity';
 import { Repository } from 'typeorm';
