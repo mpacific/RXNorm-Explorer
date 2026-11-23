@@ -4,6 +4,8 @@ import SearchResultsList from './searchResultsList';
 import { SearchResult } from '../types/searchResult';
 import { SortFields } from '../types/sortFields';
 import { Cursor } from '../types/cursor';
+import { apiUrl } from '../lib/apiUrl';
+import { apiError } from '../lib/apiError';
 
 const fetchSearchResults = async (
   searchTerm: string,
@@ -27,12 +29,10 @@ const fetchSearchResults = async (
     params.set('cursorId', String(cursor.id));
   }
 
-  const searchResults = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/search?${params.toString()}`
-  );
+  const searchResults = await fetch(apiUrl('search', params));
 
   if (!searchResults.ok) {
-    throw new Error(`Search results error: ${searchResults.statusText}`);
+    throw await apiError('Search results error', searchResults);
   }
 
   return searchResults.json();

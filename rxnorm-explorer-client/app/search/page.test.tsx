@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Search from './page';
 import { jsonResponse, requestedUrl, stubFetch } from '@/test-utils/fetch';
@@ -22,7 +23,13 @@ describe('Search page', () => {
       jsonResponse({
         totalResults: 1,
         searchResults: [
-          { id: 1, RXCUI: '161', TTY: 'IN', STR: 'acetaminophen' },
+          {
+            id: 1,
+            RXAUI: 'A1',
+            RXCUI: '161',
+            TTY: 'IN',
+            STR: 'acetaminophen',
+          },
         ],
       })
     );
@@ -74,5 +81,20 @@ describe('Search page', () => {
       sortField: 'STR',
       sortDirection: 'asc',
     });
+  });
+
+  // Back/forward changes the URL without remounting the page, so the box has
+  // to follow the URL rather than keep whatever was last typed into it.
+  it('shows the URL term in the box after back/forward', async () => {
+    searchParams = new URLSearchParams({ search: 'b' });
+    const { rerender } = render(<Search />);
+    await userEvent.clear(searchBox());
+    await userEvent.type(searchBox(), 'typed but not searched');
+
+    searchParams = new URLSearchParams({ search: 'a' });
+    rerender(<Search />);
+
+    expect(screen.getAllByRole('textbox')).toHaveLength(1);
+    expect(searchBox()).toHaveValue('a');
   });
 });

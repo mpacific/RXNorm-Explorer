@@ -31,11 +31,20 @@ describe('Throttling (e2e)', () => {
   it('turns a client away with a 429 once it goes over the limit', async () => {
     const server = app.getHttpServer();
 
+    // Any throttled route will do; a missing drug is a cheap lookup
     for (let i = 0; i < 3; i++) {
-      await request(server).get('/').expect(200);
+      await request(server).get('/drug/999999999').expect(404);
     }
 
-    const response = await request(server).get('/').expect(429);
+    const response = await request(server).get('/drug/999999999').expect(429);
     expect(Number(response.headers['retry-after'])).toBeGreaterThan(0);
+  });
+
+  it('never throttles the health check', async () => {
+    const server = app.getHttpServer();
+
+    for (let i = 0; i < 5; i++) {
+      await request(server).get('/health').expect(200);
+    }
   });
 });
