@@ -3,13 +3,13 @@ import LoadingMessage from '@/app/components/loading';
 import ErrorMessage from '@/app/components/error';
 import { useParams } from 'next/navigation';
 import DrugDetail from '@/app/components/drugDetail';
-import { Drug } from '../../../../rxnorm-explorer-server/types/drug';
+import { Drug } from '../../../../rxnorm-explorer-server/src/types/drug';
 import { useEffect, useState } from 'react';
+import { apiUrl } from '@/app/lib/apiUrl';
 
-const getDrug = async (drugId: number): Promise<Drug | null> => {
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/drug/${drugId}`
-  );
+// The slug is the drug's RXAUI, which stays the same across RxNorm releases
+const getDrug = async (rxaui: string): Promise<Drug | null> => {
+  const response = await fetch(apiUrl(`drug/${encodeURIComponent(rxaui)}`));
 
   if (!response.ok) {
     throw new Error(`Load drug error: ${response.statusText}`);
@@ -33,7 +33,7 @@ export default function DrugDetailPage() {
     // response for the previous drug must not overwrite the new one.
     let ignore = false;
 
-    getDrug(Number(slug))
+    getDrug(slug)
       .then((drug) => {
         if (!ignore) {
           setResponse({ slug, drug });
