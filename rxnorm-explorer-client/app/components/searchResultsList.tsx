@@ -59,6 +59,7 @@ export default function SearchResultsList(props: {
   const rows: SearchResult[] = (props.searchResults ?? []).map(
     (searchResult) => ({
       id: Number(searchResult.id),
+      RXAUI: searchResult.RXAUI,
       RXCUI: searchResult.RXCUI,
       TTY: searchResult.TTY,
       STR: searchResult.STR,
@@ -126,8 +127,8 @@ export default function SearchResultsList(props: {
       pageSizeOptions={[50]}
       rows={rows}
       columns={columns}
-      onRowClick={(params: GridRowParams) => {
-        router.push(`/drug/${params.id}`);
+      onRowClick={(params: GridRowParams<SearchResult>) => {
+        router.push(`/drug/${params.row.RXAUI}`);
       }}
       rowCount={props.totalCount || 0}
       rowSelection={false}
