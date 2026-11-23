@@ -181,7 +181,9 @@ The server joins NDCs with `', '` (`drug.service.ts:50`). The client splits on `
 
 `drug.service.ts:45` (`ATN = "NDC"`) and `:61` (the `RELA NOT IN ("…")` list) use double-quoted literals. These work under the current `sql_mode`. They would turn into identifiers, and break the query, if `ANSI_QUOTES` were ever enabled. **Fix:** use single quotes, or better, bind them as parameters, as `search.service.ts` already does.
 
-### C9 — Low — Entity metadata no longer matches the real schema
+### ~~C9 — Low — Entity metadata no longer matches the real schema~~ ✅ Fixed
+
+> **Fixed** — on `fix/c9-entity-metadata`. The entities were regenerated from `information_schema`, with the real lengths, the `RXNCONSO_*_idx` names from the migrations, the FK name, LAT's default, and no STR index. The ATN/ATV prefix indexes are declared with `synchronize: false`. A comment says they are read-only mappings. `migration:generate --dryrun` now reports **no changes** (it reported 17 statements before). **Also found:** the entities had no explicit table names, so TypeORM mapped them to lower-case `rxnconso` etc. That only works because this MySQL has `lower_case_table_names=2`, and it would break on a default Linux server. They are now `@Entity('RXNCONSO')` etc.
 
 - `RXNCONSO.entity.ts:59-61` still has `@Index()` on `STR`, which migration `1790709373981` dropped.
 - The decorator indexes would be generated with TypeORM's hashed names, not the `RXNCONSO_*_idx` names that the migrations create.
