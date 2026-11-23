@@ -18,18 +18,20 @@ The core of the app is in good shape. SQL is parameterized. The one value interp
 
 The main problems are around the code rather than in it:
 
-1. **Dependencies have known vulnerabilities**, including a critical advisory against the installed Next.js (16.3.4).
-2. **The API connects to MySQL as `root`**, and `local_infile` is still on globally.
-3. **`npm run start:prod` is broken.** The build writes `dist/src/main.js`, but the script runs `dist/main`.
+1. ~~**Dependencies have known vulnerabilities**, including a critical advisory against the installed Next.js (16.3.4).~~ ✅
+2. ~~**The API connects to MySQL as `root`**, and `local_infile` is still on globally.~~ ✅ (in the repo; the server change is manual)
+3. ~~**`npm run start:prod` is broken.** The build writes `dist/src/main.js`, but the script runs `dist/main`.~~ ✅
 4. **4 of the 5 unit test suites fail**, and the only e2e test checks the scaffold's "Hello World".
-5. **There is no request validation.** Malformed query strings cause 500s, and `/drug/127abc` returns drug 127.
-6. **Drug URLs use a surrogate `id`** that the migration assigns. A reload of the RxNorm data will change or remove these ids.
+5. ~~**There is no request validation.** Malformed query strings cause 500s, and `/drug/127abc` returns drug 127.~~ ✅
+6. ~~**Drug URLs use a surrogate `id`** that the migration assigns. A reload of the RxNorm data will change or remove these ids.~~ ✅
 
 ---
 
 ## 1. Security
 
-### S1 — High — Dependencies with known vulnerabilities (both packages)
+### ~~S1 — High — Dependencies with known vulnerabilities (both packages)~~ ✅ Fixed
+
+> **Fixed** on `fix/s1-dependency-audit`: `npm audit fix` in both packages (Next is now 16.4.6, and `sharp` is 0.35.5). `npm audit --omit=dev` reports 0 vulnerabilities in both. 19 moderate dev-only advisories (glob/minimatch under the Nest CLI and Jest) are left, because fixing them needs breaking `--force` upgrades. The CI audit step is covered under D2.
 
 `npm audit --omit=dev` output:
 
@@ -43,7 +45,9 @@ The main problems are around the code rather than in it:
 
 **Fix:** run `npm audit fix` in both packages, re-run the build and tests, and commit the lockfiles. Add `npm audit --omit=dev --audit-level=high` to CI (see D2).
 
-### S2 — High — The API connects to the database as `root`
+### ~~S2 — High — The API connects to the database as `root`~~ ✅ Fixed
+
+> **Fixed** — on `fix/s2-s3-db-privileges`. The README now walks through creating a `SELECT`-only `rxnorm_app` account for the API and a separate `rxnorm_migrate` account. `datasource.ts` makes the migration CLI connect as `MIGRATION_DATABASE_USER`/`MIGRATION_DATABASE_PASSWORD` when they are set. **Still to do by hand:** create the accounts on your MySQL server and point `.env` at `rxnorm_app`. (I didn't change grants on your database.)
 
 `SHOW GRANTS` for the configured `DATABASE_USER` returns `GRANT ALL ... ON *.* TO root@% WITH GRANT OPTION`, plus every dynamic privilege. The API only ever reads. Any future bug in a query path (or a compromised dependency) would therefore run with full server control. That includes `FILE`, which together with `local_infile` can read files from the host.
 
@@ -53,13 +57,17 @@ The README (`README.md:17`) does say to create a separate user, but nothing enfo
 - An app user with `GRANT SELECT ON rxnorm.* TO 'rxnorm_app'@'%'`, used by the API.
 - A migration user with `SELECT, ALTER, INDEX, REFERENCES` on the same schema, used only by `npm run migration:*`. TypeORM's migration CLI could read it from separate env vars such as `MIGRATION_DATABASE_USER`.
 
-### S3 — Medium — `local_infile` left enabled globally
+### ~~S3 — Medium — `local_infile` left enabled globally~~ ✅ Fixed
+
+> **Fixed** — on `fix/s2-s3-db-privileges`. The README now has a step to run `SET GLOBAL local_infile = 0;` after the import. **Still to do by hand:** run it on your server, where `@@local_infile` is still `1`.
 
 `SELECT @@local_infile` returns `1`. The README (`README.md:18`) tells you to turn it on for the RRF import, but never to turn it off again. When it is on, a client can ask the server to load local files, which is a known data-exfiltration path for malicious or compromised clients.
 
 **Fix:** add a step to the README to run `SET GLOBAL local_infile = 0;` after the import. Better still, pass `--local-infile=1` only on the import client and leave the server setting off.
 
-### S4 — Medium — No input validation on request parameters
+### ~~S4 — Medium — No input validation on request parameters~~ ✅ Fixed
+
+> **Fixed** — on `fix/s4-request-validation`. A global `ValidationPipe({ whitelist, transform })` is registered in `configureApp`, and `SearchQueryDto` caps lengths and checks `sortField`/`sortDirection` with `@IsIn` and `cursorId` as digits. Repeated keys, unknown sort fields and `/drug/127abc` now get a 400. **Two differences from the suggestion:** (1) an unknown `sortField` is now a 400 instead of silently sorting by name. (2) The drug id is validated with a `DrugParamsDto` rather than `ParseIntPipe`, because the global pipe runs first and turned `1e3` into `1000` before `ParseIntPipe` saw it.
 
 There is no global `ValidationPipe` and no DTOs. Controller parameter types are not enforced at runtime.
 
@@ -75,7 +83,9 @@ There is no global `ValidationPipe` and no DTOs. Controller parameter types are 
 - Add a `SearchQueryDto` (`@IsString() @Length(1, 200) searchTerm`, `@IsIn(['STR','RXCUI','TTY']) sortField`, `@IsIn(['asc','desc','ASC','DESC']) sortDirection`, `@IsOptional() @IsString() cursor`, `@IsOptional() @IsInt() cursorId`).
 - Use `@Param('id', ParseIntPipe)` in the drug controller.
 
-### S5 — Low — Rate limiting is per IP with no proxy awareness, and its config isn't validated
+### ~~S5 — Low — Rate limiting is per IP with no proxy awareness, and its config isn't validated~~ 🟡 Partly fixed
+
+> **Partly fixed** — on `fix/q4-config-validation`: `THROTTLE_MS`/`THROTTLE_LIMIT` must now be positive integers, so `THROTTLE_MS=60s` stops startup. **Not done:** proxy-aware keying and Redis storage. There is no proxy or second instance yet, so these stay as notes for when there is.
 
 - `ThrottlerGuard` keys on `req.ip`. Behind a reverse proxy or load balancer, every user shares the proxy's IP, so one heavy user throttles everyone. If `trust proxy` is turned on later, configure it narrowly (and patch `proxy-addr`, see S1).
 - `app.module.ts:21-22`: `Number(process.env.THROTTLE_MS!)` becomes `NaN` for a value like `"60s"`. `main.ts:15` only checks that the value is present, not that it's a number.
@@ -107,7 +117,9 @@ There is no global `ValidationPipe` and no DTOs. Controller parameter types are 
 
 ## 2. Correctness and bugs
 
-### C1 — High — `npm run start:prod` points at a file that doesn't exist
+### ~~C1 — High — `npm run start:prod` points at a file that doesn't exist~~ ✅ Fixed
+
+> **Fixed** — on `fix/c1-start-prod` (option a): `types/` moved to `src/types/`, and the server and client imports were updated. `nest build` now writes `dist/main.js`. `npm run start:prod` starts, and `/search` and `/drug/127` were checked against the local DB.
 
 `package.json:15` runs `node dist/main`. Because `types/` lives outside `src/` and is compiled too, `tsc` raises the root to the project directory and writes **`dist/src/main.js`** (verified: `dist/` contains only `src/`, `types/` and the tsbuildinfo files). The production start command therefore fails with `Cannot find module`.
 
@@ -117,13 +129,17 @@ There is no global `ValidationPipe` and no DTOs. Controller parameter types are 
 
 Option (a) is cleaner.
 
-### C2 — Medium — A migration's `down()` has invalid SQL, so revert fails
+### ~~C2 — Medium — A migration's `down()` has invalid SQL, so revert fails~~ ✅ Fixed
+
+> **Fixed** — The `down()` syntax was already fixed in `a07752f`, before this round. On `fix/c10-fk-migration`, `migrationsTransactionMode` is now `'each'` with a comment explaining why: under `'all'`, a failure rolled back the records of earlier migrations whose DDL had already committed.
 
 `src/db/migrations/1789068330590-add-indexes-to-tables.ts:38-47` uses `DROP INDEX ON RXNCONSO RXNCONSO_RXCUI_idx`. MySQL's syntax is `DROP INDEX <name> ON <table>`, which `1790709373981-drop-unused-str-indexes.ts:7` already uses correctly. `npm run migration:revert` past this migration will throw a parse error.
 
 There is a second problem. MySQL DDL commits implicitly, so `migrationsTransactionMode: 'all'` (`datasource.ts:20`) can't roll back a migration that fails partway. A failure leaves the migration half-applied and still unrecorded. Keep each migration small, or make the steps idempotent.
 
-### C3 — Medium — Drug URLs depend on surrogate ids that won't survive a data reload
+### ~~C3 — Medium — Drug URLs depend on surrogate ids that won't survive a data reload~~ ✅ Fixed
+
+> **Fixed** — on `fix/c3-rxaui-public-ids`. The API route is now `/drug/:rxaui`. Search results and related drugs carry `RXAUI`, and every client link uses it. The `Drug` response no longer includes the surrogate `id`. That `id` now appears only as the keyset `cursorId` in search paging, which is short-lived. The README has a new "Monthly data refresh" section: load into a staging schema, run the migrations, then swap with an atomic `RENAME TABLE`. **Note:** existing `/drug/<id>` bookmarks from before this change will now get a 400.
 
 `/drug/:id` uses `RXNCONSO.id`, an `AUTO_INCREMENT` column added by migration `1788891213859`. RxNorm ships monthly. The NLM load scripts drop and recreate the tables, which has two effects:
 
@@ -143,23 +159,33 @@ There is a second problem. MySQL DDL commits implicitly, so `migrationsTransacti
 2. The logic most worth unit testing is in `SearchService`: the sort-field allow-list fallback, direction normalization, word capping and LIKE escaping, keyset cursor building in both directions, and `totalResults` being present only on the first page.
 3. Add e2e tests against a small fixture database, for example via Testcontainers or a seeded Docker MySQL. Cover paging (no skipped or duplicated rows across a run of equal `STR` values), NDC and RXCUI lookups, a 404 on an unknown drug, and 400s on bad input once S4 is done.
 
-### C5 — Low — NDCs are formatted twice and end up with double spaces
+### ~~C5 — Low — NDCs are formatted twice and end up with double spaces~~ ✅ Fixed
+
+> **Fixed** — on `fix/c5-ndc-array`. The API now returns `NDCs: string[]` in place of the joined `ATV` string, and the client joins the array once. (The old client test used NDCs without spaces, which is why it never caught the double spaces.)
 
 The server joins NDCs with `', '` (`drug.service.ts:50`). The client splits on `','` and joins with `', '` again (`drugDetail.tsx:64,109`), which gives `"a,  b"`. **Fix:** return `NDCs: string[]` from the API and join once in the client.
 
-### C6 — Low — The search box goes stale on back/forward
+### ~~C6 — Low — The search box goes stale on back/forward~~ ✅ Fixed
+
+> **Fixed** — on `fix/c6-searchbox-history`. `<SearchBox key={`box:${searchTerm}`}>` remounts the box when the URL term changes. The `box:` prefix is needed because `SearchResults` beside it is already keyed on the bare term, and duplicate sibling keys left the old input in the DOM. A test covers back/forward.
 
 `searchBox.tsx:19` uses an uncontrolled `defaultValue`. On `/search`, if you search "a", then "b", then press Back, the URL and results show "a" but the text box still says "b". **Fix:** render `<SearchBox key={searchTerm} … />` in `search/page.tsx:31`.
 
-### C7 — Low — The README's example API URL breaks requests
+### ~~C7 — Low — The README's example API URL breaks requests~~ ✅ Fixed
+
+> **Fixed** — on `fix/c7-api-url`. The README example no longer has the trailing slash. Both fetches go through a new `apiUrl()` helper (`app/lib/apiUrl.ts`), which joins the base and path with exactly one slash, so either form works.
 
 `README.md:33` gives `http://localhost:6109/` (with a trailing slash). The client builds `${NEXT_PUBLIC_API_URL}/drug/…` (`drug/[slug]/page.tsx:11`, `searchResults.tsx:31`), which produces `//drug/…`. Express doesn't collapse the double slash, so the request won't match the route. **Fix:** remove the trailing slash in the README, and/or build URLs with `new URL('drug/' + id, base)`.
 
-### C8 — Low — SQL string literals use double quotes
+### ~~C8 — Low — SQL string literals use double quotes~~ ✅ Fixed
+
+> **Fixed** — on `fix/c8-sql-literals`. `"NDC"` and the RELA exclusion list are now bound parameters (`:ndc`, `:...inverseRelas`). The list lives in an `INVERSE_RELAS` constant.
 
 `drug.service.ts:45` (`ATN = "NDC"`) and `:61` (the `RELA NOT IN ("…")` list) use double-quoted literals. These work under the current `sql_mode`. They would turn into identifiers, and break the query, if `ANSI_QUOTES` were ever enabled. **Fix:** use single quotes, or better, bind them as parameters, as `search.service.ts` already does.
 
-### C9 — Low — Entity metadata no longer matches the real schema
+### ~~C9 — Low — Entity metadata no longer matches the real schema~~ ✅ Fixed
+
+> **Fixed** — on `fix/c9-entity-metadata`. The entities were regenerated from `information_schema`, with the real lengths, the `RXNCONSO_*_idx` names from the migrations, the FK name, LAT's default, and no STR index. The ATN/ATV prefix indexes are declared with `synchronize: false`. A comment says they are read-only mappings. `migration:generate --dryrun` now reports **no changes** (it reported 17 statements before). **Also found:** the entities had no explicit table names, so TypeORM mapped them to lower-case `rxnconso` etc. That only works because this MySQL has `lower_case_table_names=2`, and it would break on a default Linux server. They are now `@Entity('RXNCONSO')` etc.
 
 - `RXNCONSO.entity.ts:59-61` still has `@Index()` on `STR`, which migration `1790709373981` dropped.
 - The decorator indexes would be generated with TypeORM's hashed names, not the `RXNCONSO_*_idx` names that the migrations create.
@@ -167,11 +193,15 @@ The server joins NDCs with `', '` (`drug.service.ts:50`). The client splits on `
 
 `synchronize` is off, so nothing breaks today. But `typeorm migration:generate` would produce a destructive diff that tries to shrink columns and recreate indexes. **Fix:** make the entities match the DB (lengths, `@Index('RXNCONSO_RXCUI_idx')` names, remove the `STR` index), or add a comment saying the entities are read-only mappings and must never be used to generate migrations.
 
-### C10 — Low — The FK migration skips validating existing data
+### ~~C10 — Low — The FK migration skips validating existing data~~ ✅ Fixed
+
+> **Fixed** — on `fix/c10-fk-migration`. The FK is now added with `FOREIGN_KEY_CHECKS` left on, so MySQL validates the existing rows. The migration counts orphans first and fails with a query that finds them. The local data has 0 orphans. `ON DELETE SET NULL ON UPDATE CASCADE` is unchanged so fresh and existing databases match. Removing it would need a new migration, and it does no harm on read-only data.
 
 `1790698212730-add-relations-to-tables.ts:5-9` turns off `FOREIGN_KEY_CHECKS` around `ADD CONSTRAINT`, so existing orphan rows aren't checked. If the statement fails, checks stay off on that pooled connection. `ON DELETE SET NULL ON UPDATE CASCADE` also has little purpose on read-only reference data. **Fix:** check for orphans first (`SELECT COUNT(*) FROM RXNSAT s LEFT JOIN RXNCONSO c USING (RXAUI) WHERE c.id IS NULL`) and add the FK with checks on. Or drop the FK, since nothing relies on it at runtime.
 
-### C11 — Low — Bootstrap errors are unhandled
+### ~~C11 — Low — Bootstrap errors are unhandled~~ ✅ Fixed
+
+> **Fixed** — on `fix/q4-config-validation`. The `HttpException` startup checks are gone, because config validation covers them. `bootstrap()` now ends in `.catch(…process.exit(1))`.
 
 `main.ts:30` calls `bootstrap()` as a floating promise (this is the only ESLint warning). On top of that, `main.ts:9-19` throws `HttpException`s, which are meant for HTTP responses, during startup. **Fix:** use `bootstrap().catch((e) => { console.error(e); process.exit(1); })`, throw plain `Error`s, or better, move the checks into config validation (Q4).
 
@@ -187,7 +217,9 @@ The server joins NDCs with `', '` (`drug.service.ts:50`). The client splits on `
 
 All timings below are from the local database (MySQL 26.7, the full prescribable-content release).
 
-### P1 — Medium — Short search terms scan most of the table, twice
+### ~~P1 — Medium — Short search terms scan most of the table, twice~~ 🟡 Partly fixed
+
+> **Partly fixed** — on `fix/p1-search-cost` (option 1): words shorter than 2 characters are left out of the name `LIKE`, though the whole term still matches RXCUI/NDC exactly. `a` no longer scans and counts ~96k rows. **Measured and not done:** (a) `COUNT(*) OVER()` in the page query was *slower* than the separate count for `a` (306 ms against 149 ms), so I dropped that idea. (b) A capped count is cheap (50 ms against 149 ms), but the grid's server-side paging uses the total as its row count, so a cap would block paging past it. That needs a UX decision ("1,000+" with open-ended paging). (c) The ngram FULLTEXT index is a bigger change. **Still open:** the search box doesn't yet tell people that one-letter words are ignored.
 
 The name matcher is `STR LIKE '%word%'`, which can't use an index. On the first page the count query and the page query each do that scan, in parallel:
 
@@ -203,7 +235,9 @@ That's acceptable today. But a one-character search costs roughly 350 ms of DB t
 2. Cap the count, for example `SELECT COUNT(*) FROM (… LIMIT 1001)`, and show "1,000+". Or fold it into the page query with `COUNT(*) OVER()`, which costs one scan instead of two.
 3. For real speed, add an `ngram` FULLTEXT index on `STR` (MySQL's ngram parser supports infix matching) and use `MATCH … AGAINST` in boolean mode for terms of length ≥ ngram size. Keep `LIKE` as the fallback for shorter terms.
 
-### P2 — Medium — The drug detail response has no size limit
+### ~~P2 — Medium — The drug detail response has no size limit~~ 🟡 Partly fixed
+
+> **Partly fixed** — on `fix/p2-bound-ndc-list`: the facts table shows the first 20 NDCs and a "Show all N NDCs" / "Show fewer" toggle. (NDCs became an array under C5.) **Not done:** the API still sends every NDC and all related-drug rows, about 50 KB and 110 KB for the worst cases. The DataGrid virtualizes the 562 rows, so rendering is fine. Paginating or grouping related drugs by RELA on the server changes the API and the page layout, so I left it for you to decide.
 
 - One atom has **3,558 NDCs**, and all of them are joined into one string and rendered in one table cell.
 - Acetaminophen (`/drug/127`) returns **562 related-drug rows**, all of them sent to the client and handed to the DataGrid.
@@ -212,11 +246,15 @@ The responses are large, the UI is hard to use, and payloads like this hurt on m
 - Return NDCs as an array and paginate them, or show the first N with a "show all".
 - Paginate or group related drugs by relationship type (`RELA`) on the server.
 
-### P3 — Low — The drug detail queries run one after another when they don't need to
+### ~~P3 — Low — The drug detail queries run one after another when they don't need to~~ ✅ Fixed
+
+> **Fixed** — on `fix/p3-parallel-drug-queries`. The NDC and related-drugs queries run together in `Promise.all`, and a unit test checks that the second starts before the first finishes.
 
 `drug.service.ts:42-70`. After the first lookup, the NDC query and the related-drugs query don't depend on each other. **Fix:** run them with `Promise.all`. (The related-drugs query is already efficient: `EXPLAIN` shows an index-merge union on `RXNREL_RXCUI1_idx`/`RXCUI2_idx` and covering lookups on `RXNCONSO_RXCUI_idx`.)
 
-### P4 — Low — Nothing is cached, even though the data changes monthly
+### ~~P4 — Low — Nothing is cached, even though the data changes monthly~~ ✅ Fixed
+
+> **Fixed** — on `fix/p4-cache-headers` (option 1). A `CacheControlInterceptor` sends `Cache-Control: public, max-age=3600` on successful `/search` and `/drug/:rxaui` responses. Express already adds an ETag, so revalidation is cheap. It is an interceptor rather than `@Header()` because Nest applies `@Header()` before the handler runs, which would have made 400s and 404s cacheable too. Tests cover both cases. The server-component option is not done; see P5.
 
 Every drug page is fetched in the browser after hydration (`'use client'` everywhere, `useEffect` fetch), so nothing is cached. RxNorm data changes monthly. **Fix:** any of these would remove most of the load.
 - Send `Cache-Control: public, max-age=3600` (or an ETag tied to the release version) from the API.
@@ -224,7 +262,9 @@ Every drug page is fetched in the browser after hydration (`'use client'` everyw
 
 The server-component approach also makes the page show content on first load and makes drug pages indexable.
 
-### P5 — Low — Client bundle and rendering
+### ~~P5 — Low — Client bundle and rendering~~ ✅ Fixed
+
+> **Fixed** — on `fix/p5-client-bundle`. All three points are done. (1) `app/page.tsx` is a server component, and `'use client'` moved down to `searchBox.tsx`, which needs the router. (2) Roboto is loaded with `next/font/google` (four weights, Latin subset preloaded, `--font-roboto` variable). A small client `ThemeProvider` (`app/theme.tsx`) points MUI's typography at the variable, and `@fontsource/roboto` is removed. (3) The layout imports `v16-appRouter`. `next build` passes, and the served home page has the font variable class on `<html>` and a woff2 preload. **Note:** `next/font/google` downloads the font from Google *at build time*, so builds need network access (visitors never contact Google).
 
 - `app/page.tsx` is `'use client'` but has no client logic. Making it a server component would ship less JS.
 - `layout.tsx:6-9` loads 4 Roboto weights through `@fontsource` CSS. `next/font/google` (or `next/font/local`) would self-host only the subsets that are used and avoid layout shift.
@@ -234,11 +274,15 @@ The server-component approach also makes the page show content on first load and
 
 ## 4. Code quality and maintainability
 
-### Q1 — `@Res()` bypasses Nest's response pipeline
+### ~~Q1 — `@Res()` bypasses Nest's response pipeline~~ ✅ Fixed
+
+> **Fixed** — on `fix/q1-remove-res`. Both controllers now return their result (`Promise<Drug>` / `Promise<SearchResults>`), so interceptors and `@Header()` apply again. The `serchService` typo from Q5 was fixed at the same time.
 
 `drug.controller.ts:20` and `search.controller.ts:17` take the Express `res` and call `res.status(200).json(...)`. That opts out of interceptors, serialization and `@Header()`/`@HttpCode()` decorators, and it's harder to test. **Fix:** `return drug;` / `return drugs;`. The status is 200 by default.
 
-### Q2 — Shared types reach across package boundaries
+### ~~Q2 — Shared types reach across package boundaries~~ 🟡 Partly fixed
+
+> **Partly fixed** — on `fix/c1-start-prod`: `SearchResults` is now a plain type (`Pick<Drug, …>`) instead of the TypeORM entity, so the API contract no longer depends on the persistence model. **Not done:** the client still imports the types through `../rxnorm-explorer-server/src/types`. A shared workspace package or OpenAPI-generated types is a bigger restructure, so I left it for you to decide.
 
 The client imports `../../../rxnorm-explorer-server/types/drug` (`drugDetail.tsx:11,13`, `drug/[slug]/page.tsx:6`, `types/searchResult.ts:1`). On the server, `types/searchResults.ts:1` imports the TypeORM entity class, so the "API contract" is the persistence model. That coupling is also what causes C1.
 
@@ -251,7 +295,9 @@ The client imports `../../../rxnorm-explorer-server/types/drug` (`drugDetail.tsx
 - Client `package.json`: `rxjs` is unused. `dotenv` is only imported in `layout.tsx:1`, and Next already loads `.env*` itself, so remove both.
 - `@types/node` is `^20` in the client while the project requires Node 24.
 
-### Q4 — Validate config once, at startup
+### ~~Q4 — Validate config once, at startup~~ ✅ Fixed
+
+> **Fixed** — on `fix/q4-config-validation`. `ConfigModule.forRoot({ validate })` checks every variable against a class-validator schema (`src/config/env.validation.ts`) and converts numbers. TypeORM and the throttler use `forRootAsync` with the validated `ConfigService`. The options builder (`src/db/dataSourceOptions.ts`) is shared with the migration CLI.
 
 `datasource.ts:9` creates a `ConfigService` by hand. `getOrThrow<number>('DATABASE_PORT')` actually returns a string. The throttle and CORS checks live in `main.ts`. **Fix:** use `ConfigModule.forRoot({ validate })` with a schema (class-validator or zod) covering every variable, including numeric `THROTTLE_*`, `PORT` and `DATABASE_PORT`. Then read typed values from `ConfigService` everywhere, using `ThrottlerModule.forRootAsync` and `TypeOrmModule.forRootAsync`.
 
@@ -305,14 +351,14 @@ Add a workflow that runs, for both packages: `npm ci`, `lint`, `tsc --noEmit`, `
 
 | # | Item | Effort |
 |---|---|---|
-| 1 | S1: `npm audit fix` in both packages | Minutes |
-| 2 | S2 + S3: read-only app DB user; turn `local_infile` off | Minutes |
-| 3 | C1: fix `start:prod` (move `types/` under `src/`) | Small |
-| 4 | S4: `ValidationPipe` + DTOs + `ParseIntPipe` | Small |
-| 5 | C2: fix the migration `down()` SQL | Minutes |
+| 1 | ~~S1: `npm audit fix` in both packages~~ ✅ | Minutes |
+| 2 | ~~S2 + S3: read-only app DB user; turn `local_infile` off~~ ✅ | Minutes |
+| 3 | ~~C1: fix `start:prod` (move `types/` under `src/`)~~ ✅ | Small |
+| 4 | ~~S4: `ValidationPipe` + DTOs + `ParseIntPipe`~~ ✅ | Small |
+| 5 | ~~C2: fix the migration `down()` SQL~~ ✅ | Minutes |
 | 6 | C4 + D2: get tests passing, add SearchService tests and CI | Medium |
 | 7 | D1: commit the docker compose setup | Small |
-| 8 | C3: switch public ids to `RXAUI`; document the data reload | Medium |
+| 8 | ~~C3: switch public ids to `RXAUI`; document the data reload~~ ✅ | Medium |
 | 9 | P1 + P2: minimum term length / capped count; bound the drug-detail payload | Small–Medium |
 | 10 | P4: caching headers or a server-rendered drug page | Small–Medium |
 | 11 | The remaining Low/Info items, as convenient | — |
