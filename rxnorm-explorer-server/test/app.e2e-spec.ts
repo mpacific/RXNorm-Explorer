@@ -6,8 +6,8 @@ import { DataSource } from 'typeorm';
 import { AppModule } from './../src/app.module';
 import { configureApp } from './../src/main';
 import { EXCLUDED_TTYS } from './../src/shared/excludedTtys';
-import type { SearchResults } from './../types/searchResults';
-import type { Drug } from './../types/drug';
+import type { SearchResults } from '../src/types/searchResults';
+import type { Drug } from '../src/types/drug';
 
 // Runs against the database in .env, with whatever RxNorm release is loaded,
 // so the fixtures are looked up rather than hard-coded and expectations are

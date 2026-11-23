@@ -18,9 +18,9 @@ The core of the app is in good shape. SQL is parameterized. The one value interp
 
 The main problems are around the code rather than in it:
 
-1. **Dependencies have known vulnerabilities**, including a critical advisory against the installed Next.js (16.3.4).
-2. **The API connects to MySQL as `root`**, and `local_infile` is still on globally.
-3. **`npm run start:prod` is broken.** The build writes `dist/src/main.js`, but the script runs `dist/main`.
+1. ~~**Dependencies have known vulnerabilities**, including a critical advisory against the installed Next.js (16.3.4).~~ ✅
+2. ~~**The API connects to MySQL as `root`**, and `local_infile` is still on globally.~~ ✅ (in the repo; the server change is manual)
+3. ~~**`npm run start:prod` is broken.** The build writes `dist/src/main.js`, but the script runs `dist/main`.~~ ✅
 4. **4 of the 5 unit test suites fail**, and the only e2e test checks the scaffold's "Hello World".
 5. **There is no request validation.** Malformed query strings cause 500s, and `/drug/127abc` returns drug 127.
 6. **Drug URLs use a surrogate `id`** that the migration assigns. A reload of the RxNorm data will change or remove these ids.
@@ -29,7 +29,9 @@ The main problems are around the code rather than in it:
 
 ## 1. Security
 
-### S1 — High — Dependencies with known vulnerabilities (both packages)
+### ~~S1 — High — Dependencies with known vulnerabilities (both packages)~~ ✅ Fixed
+
+> **Fixed** on `fix/s1-dependency-audit`: `npm audit fix` in both packages (Next is now 16.4.6, and `sharp` is 0.35.5). `npm audit --omit=dev` reports 0 vulnerabilities in both. 19 moderate dev-only advisories (glob/minimatch under the Nest CLI and Jest) are left, because fixing them needs breaking `--force` upgrades. The CI audit step is covered under D2.
 
 `npm audit --omit=dev` output:
 
@@ -43,7 +45,9 @@ The main problems are around the code rather than in it:
 
 **Fix:** run `npm audit fix` in both packages, re-run the build and tests, and commit the lockfiles. Add `npm audit --omit=dev --audit-level=high` to CI (see D2).
 
-### S2 — High — The API connects to the database as `root`
+### ~~S2 — High — The API connects to the database as `root`~~ ✅ Fixed
+
+> **Fixed** — on `fix/s2-s3-db-privileges`. The README now walks through creating a `SELECT`-only `rxnorm_app` account for the API and a separate `rxnorm_migrate` account. `datasource.ts` makes the migration CLI connect as `MIGRATION_DATABASE_USER`/`MIGRATION_DATABASE_PASSWORD` when they are set. **Still to do by hand:** create the accounts on your MySQL server and point `.env` at `rxnorm_app`. (I didn't change grants on your database.)
 
 `SHOW GRANTS` for the configured `DATABASE_USER` returns `GRANT ALL ... ON *.* TO root@% WITH GRANT OPTION`, plus every dynamic privilege. The API only ever reads. Any future bug in a query path (or a compromised dependency) would therefore run with full server control. That includes `FILE`, which together with `local_infile` can read files from the host.
 
@@ -53,7 +57,9 @@ The README (`README.md:17`) does say to create a separate user, but nothing enfo
 - An app user with `GRANT SELECT ON rxnorm.* TO 'rxnorm_app'@'%'`, used by the API.
 - A migration user with `SELECT, ALTER, INDEX, REFERENCES` on the same schema, used only by `npm run migration:*`. TypeORM's migration CLI could read it from separate env vars such as `MIGRATION_DATABASE_USER`.
 
-### S3 — Medium — `local_infile` left enabled globally
+### ~~S3 — Medium — `local_infile` left enabled globally~~ ✅ Fixed
+
+> **Fixed** — on `fix/s2-s3-db-privileges`. The README now has a step to run `SET GLOBAL local_infile = 0;` after the import. **Still to do by hand:** run it on your server, where `@@local_infile` is still `1`.
 
 `SELECT @@local_infile` returns `1`. The README (`README.md:18`) tells you to turn it on for the RRF import, but never to turn it off again. When it is on, a client can ask the server to load local files, which is a known data-exfiltration path for malicious or compromised clients.
 
@@ -107,7 +113,9 @@ There is no global `ValidationPipe` and no DTOs. Controller parameter types are 
 
 ## 2. Correctness and bugs
 
-### C1 — High — `npm run start:prod` points at a file that doesn't exist
+### ~~C1 — High — `npm run start:prod` points at a file that doesn't exist~~ ✅ Fixed
+
+> **Fixed** — on `fix/c1-start-prod` (option a): `types/` moved to `src/types/`, and the server and client imports were updated. `nest build` now writes `dist/main.js`. `npm run start:prod` starts, and `/search` and `/drug/127` were checked against the local DB.
 
 `package.json:15` runs `node dist/main`. Because `types/` lives outside `src/` and is compiled too, `tsc` raises the root to the project directory and writes **`dist/src/main.js`** (verified: `dist/` contains only `src/`, `types/` and the tsbuildinfo files). The production start command therefore fails with `Cannot find module`.
 
@@ -238,7 +246,9 @@ The server-component approach also makes the page show content on first load and
 
 `drug.controller.ts:20` and `search.controller.ts:17` take the Express `res` and call `res.status(200).json(...)`. That opts out of interceptors, serialization and `@Header()`/`@HttpCode()` decorators, and it's harder to test. **Fix:** `return drug;` / `return drugs;`. The status is 200 by default.
 
-### Q2 — Shared types reach across package boundaries
+### ~~Q2 — Shared types reach across package boundaries~~ 🟡 Partly fixed
+
+> **Partly fixed** — on `fix/c1-start-prod`: `SearchResults` is now a plain type (`Pick<Drug, …>`) instead of the TypeORM entity, so the API contract no longer depends on the persistence model. **Not done:** the client still imports the types through `../rxnorm-explorer-server/src/types`. A shared workspace package or OpenAPI-generated types is a bigger restructure, so I left it for you to decide.
 
 The client imports `../../../rxnorm-explorer-server/types/drug` (`drugDetail.tsx:11,13`, `drug/[slug]/page.tsx:6`, `types/searchResult.ts:1`). On the server, `types/searchResults.ts:1` imports the TypeORM entity class, so the "API contract" is the persistence model. That coupling is also what causes C1.
 
@@ -305,9 +315,9 @@ Add a workflow that runs, for both packages: `npm ci`, `lint`, `tsc --noEmit`, `
 
 | # | Item | Effort |
 |---|---|---|
-| 1 | S1: `npm audit fix` in both packages | Minutes |
-| 2 | S2 + S3: read-only app DB user; turn `local_infile` off | Minutes |
-| 3 | C1: fix `start:prod` (move `types/` under `src/`) | Small |
+| 1 | ~~S1: `npm audit fix` in both packages~~ ✅ | Minutes |
+| 2 | ~~S2 + S3: read-only app DB user; turn `local_infile` off~~ ✅ | Minutes |
+| 3 | ~~C1: fix `start:prod` (move `types/` under `src/`)~~ ✅ | Small |
 | 4 | S4: `ValidationPipe` + DTOs + `ParseIntPipe` | Small |
 | 5 | C2: fix the migration `down()` SQL | Minutes |
 | 6 | C4 + D2: get tests passing, add SearchService tests and CI | Medium |

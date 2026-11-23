@@ -1,7 +1,7 @@
 import { Controller, Get, Query, Res } from '@nestjs/common';
 import { SearchService } from './search.service';
 import type { Response } from 'express';
-import type { SearchResults } from '../../types/searchResults';
+import type { SearchResults } from '../types/searchResults';
 
 @Controller('search')
 export class SearchController {

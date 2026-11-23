@@ -23,6 +23,20 @@ export const dataSourceOptions: DataSourceOptions = {
   logging: process.env.ENV === 'development',
 };
 
-const dataSource = new DataSource(dataSourceOptions);
+// The migration CLI changes the schema, so it can connect as a separate
+// account with ALTER/INDEX/REFERENCES while the API's own account only has
+// SELECT. Falls back to the API's account when no migration account is set.
+const migrationUser = configService.get<string>('MIGRATION_DATABASE_USER');
+const dataSource = new DataSource(
+  migrationUser
+    ? {
+        ...dataSourceOptions,
+        username: migrationUser,
+        password: configService.getOrThrow<string>(
+          'MIGRATION_DATABASE_PASSWORD',
+        ),
+      }
+    : dataSourceOptions,
+);
 
 export default dataSource;
