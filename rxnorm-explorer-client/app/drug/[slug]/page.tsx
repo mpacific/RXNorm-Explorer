@@ -3,7 +3,7 @@ import LoadingMessage from '@/app/components/loading';
 import ErrorMessage from '@/app/components/error';
 import { useParams } from 'next/navigation';
 import DrugDetail from '@/app/components/drugDetail';
-import { Drug } from '../../../../rxnorm-explorer-server/types/drug';
+import { Drug } from '../../../../rxnorm-explorer-server/src/types/drug';
 import { useEffect, useState } from 'react';
 
 const getDrug = async (drugId: number): Promise<Drug | null> => {
