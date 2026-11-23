@@ -1,4 +1,5 @@
 import {
+  Button,
   Container,
   Table,
   TableBody,
@@ -8,10 +9,10 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import { Drug } from '../../../rxnorm-explorer-server/types/drug';
+import { Drug } from '../../../rxnorm-explorer-server/src/types/drug';
 import Link from 'next/link';
-import { RelatedDrug } from '../../../rxnorm-explorer-server/types/relatedDrugs';
-import { ReactElement } from 'react';
+import { RelatedDrug } from '../../../rxnorm-explorer-server/src/types/relatedDrugs';
+import { ReactElement, useState } from 'react';
 import { DataGrid, GridRenderCellParams } from '@mui/x-data-grid';
 
 const translateRELA = (RELA: string): string => {
@@ -34,12 +35,12 @@ const translateRELA = (RELA: string): string => {
 };
 
 const linkDrug = (
-  pageDrugId: number,
-  linkDrugId: number,
+  pageRxaui: string,
+  linkRxaui: string,
   linkDrugName: string,
   linkDrugTty: string
 ): ReactElement => {
-  if (Number(pageDrugId) === Number(linkDrugId)) {
+  if (pageRxaui === linkRxaui) {
     return (
       <span>
         {linkDrugName} ({linkDrugTty})
@@ -47,11 +48,42 @@ const linkDrug = (
     );
   }
   return (
-    <Link href={'/drug/' + linkDrugId}>
+    <Link href={'/drug/' + linkRxaui}>
       {linkDrugName} ({linkDrugTty})
     </Link>
   );
 };
+
+// Some atoms have thousands of NDCs (one has 3,558), so only the first few
+// are shown until asked for the rest.
+export const NDC_PREVIEW_COUNT = 20;
+
+function NdcList(props: { NDCs: string[] }) {
+  const [showAll, setShowAll] = useState(false);
+
+  if (props.NDCs.length === 0) {
+    return <>None</>;
+  }
+
+  const hidden = props.NDCs.length - NDC_PREVIEW_COUNT;
+  const shown =
+    showAll || hidden <= 0
+      ? props.NDCs
+      : props.NDCs.slice(0, NDC_PREVIEW_COUNT);
+
+  return (
+    <>
+      {shown.join(', ')}
+      {hidden > 0 && (
+        <div>
+          <Button size="small" onClick={() => setShowAll(!showAll)}>
+            {showAll ? 'Show fewer' : `Show all ${props.NDCs.length} NDCs`}
+          </Button>
+        </div>
+      )}
+    </>
+  );
+}
 
 type DetailRelatedDrug = {
   id: string;
@@ -61,15 +93,23 @@ type DetailRelatedDrug = {
 };
 
 export default function DrugDetail(props: { drug: Drug }) {
-  const ndcArray = props.drug?.ATV?.split(',');
-
   const rows: DetailRelatedDrug[] = [];
   props.drug?.RelatedDrugs?.map((drug: RelatedDrug): void => {
     rows.push({
-      id: drug.c1_id + '-' + drug.c2_id + '-' + drug.r_id,
-      c1_name: linkDrug(props.drug.id, drug.c1_id, drug.c1_STR, drug.c1_TTY),
+      id: drug.c1_RXAUI + '-' + drug.c2_RXAUI + '-' + drug.r_id,
+      c1_name: linkDrug(
+        props.drug.RXAUI,
+        drug.c1_RXAUI,
+        drug.c1_STR,
+        drug.c1_TTY
+      ),
       relationship: translateRELA(drug.r_RELA),
-      c2_name: linkDrug(props.drug.id, drug.c2_id, drug.c2_STR, drug.c2_TTY),
+      c2_name: linkDrug(
+        props.drug.RXAUI,
+        drug.c2_RXAUI,
+        drug.c2_STR,
+        drug.c2_TTY
+      ),
     });
   });
 
@@ -106,7 +146,9 @@ export default function DrugDetail(props: { drug: Drug }) {
               >
                 {props.drug.TTY}
               </TableCell>
-              <TableCell>{ndcArray?.join(', ') || 'None'}</TableCell>
+              <TableCell>
+                <NdcList NDCs={props.drug.NDCs} />
+              </TableCell>
             </TableRow>
           </TableBody>
         </Table>
