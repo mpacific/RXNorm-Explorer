@@ -2,10 +2,11 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RXNCONSO } from '../db/entities/RXNCONSO.entity';
 import { Brackets, Repository } from 'typeorm';
-import { SearchResults } from '../../types/searchResults';
+import { SearchResults } from '../types/searchResults';
 import { EXCLUDED_TTYS } from '../shared/excludedTtys';
 
-const SORT_FIELDS = ['STR', 'RXCUI', 'TTY'] as const;
+export const SORT_FIELDS = ['STR', 'RXCUI', 'TTY'] as const;
+export const SORT_DIRECTIONS = ['ASC', 'DESC', 'asc', 'desc'] as const;
 // Each word adds a LIKE to a scan of the whole table, so the cost grows with
 // every word (~2s at 300). Extra words are dropped rather than rejected so a
 // pasted long drug name still finds that drug.
@@ -20,11 +21,11 @@ export class SearchService {
   ) {}
 
   async searchDrugs(
-    searchTerm: string,
-    cursor: string,
-    cursorId: string,
-    sortField: string,
-    sortDirection: 'ASC' | 'DESC' | 'desc' | 'asc',
+    searchTerm?: string,
+    cursor?: string,
+    cursorId?: string,
+    sortField?: string,
+    sortDirection?: (typeof SORT_DIRECTIONS)[number],
   ): Promise<SearchResults> {
     const limit = 50;
     // sortField is interpolated into the SQL, so it has to come from a fixed list

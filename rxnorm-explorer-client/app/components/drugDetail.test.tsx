@@ -1,8 +1,8 @@
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import DrugDetail from './drugDetail';
-import { Drug } from '../../../rxnorm-explorer-server/types/drug';
-import { RelatedDrug } from '../../../rxnorm-explorer-server/types/relatedDrugs';
+import { Drug } from '../../../rxnorm-explorer-server/src/types/drug';
+import { RelatedDrug } from '../../../rxnorm-explorer-server/src/types/relatedDrugs';
 
 const related = (
   r_id: number,

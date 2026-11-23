@@ -108,10 +108,9 @@ describe('DrugService', () => {
 
     expect(ndcQuery.select).toHaveBeenCalledWith(['rxnsat.ATV AS ATV']);
     expect(ndcQuery.where).toHaveBeenCalledWith(
-      expect.stringContaining('rxnsat.RXAUI = :drugAUI'),
-      { drugAUI: '1234567' },
+      'rxnsat.RXAUI = :drugAUI AND rxnsat.ATN = :ndc',
+      { drugAUI: '1234567', ndc: 'NDC' },
     );
-    expect(ndcQuery.where.mock.calls[0][0]).toContain('rxnsat.ATN = "NDC"');
   });
 
   it('gives an empty NDC list when the drug has none', async () => {
@@ -145,10 +144,16 @@ describe('DrugService', () => {
     await service.getDrug(127);
 
     expect(relatedQuery.where).toHaveBeenCalledWith('r.RELA IS NOT NULL');
-    const inverse: string = relatedQuery.andWhere.mock.calls[0][0];
-    for (const rela of ['inverse_isa', 'ingredient_of', 'tradename_of']) {
-      expect(inverse).toContain(`"${rela}"`);
-    }
+    expect(relatedQuery.andWhere).toHaveBeenCalledWith(
+      'r.RELA NOT IN (:...inverseRelas)',
+      {
+        inverseRelas: expect.arrayContaining([
+          'inverse_isa',
+          'ingredient_of',
+          'tradename_of',
+        ]),
+      },
+    );
     expect(relatedQuery.andWhere).toHaveBeenCalledWith(
       'c1.TTY NOT IN (:excludeTtys)',
       { excludeTtys: EXCLUDED_TTYS },
@@ -164,5 +169,22 @@ describe('DrugService', () => {
 
     expect(relatedQuery.orderBy).toHaveBeenCalledWith('r.RXCUI1', 'ASC');
     expect(relatedQuery.addOrderBy).toHaveBeenCalledWith('r.RXCUI2', 'ASC');
+  });
+
+  it('looks up NDCs and related drugs at the same time', async () => {
+    // Hold the NDC query open; the related-drugs query must start anyway
+    let finishNdcs!: (rows: { ATV: string }[]) => void;
+    ndcQuery.getRawMany.mockReturnValue(
+      new Promise((resolve) => {
+        finishNdcs = resolve;
+      }),
+    );
+
+    const pending = service.getDrug(127);
+    await new Promise(process.nextTick);
+
+    expect(relatedQuery.getRawMany).toHaveBeenCalled();
+    finishNdcs([]);
+    await expect(pending).resolves.toMatchObject({ ATV: '' });
   });
 });

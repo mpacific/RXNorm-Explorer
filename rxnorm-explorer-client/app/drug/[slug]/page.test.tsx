@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DrugDetailPage from './page';
-import { Drug } from '../../../../rxnorm-explorer-server/types/drug';
+import { Drug } from '../../../../rxnorm-explorer-server/src/types/drug';
 import {
   deferredResponse,
   jsonResponse,
