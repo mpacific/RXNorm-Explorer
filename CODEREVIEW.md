@@ -167,7 +167,9 @@ The server joins NDCs with `', '` (`drug.service.ts:50`). The client splits on `
 
 `README.md:33` gives `http://localhost:6109/` (with a trailing slash). The client builds `${NEXT_PUBLIC_API_URL}/drug/…` (`drug/[slug]/page.tsx:11`, `searchResults.tsx:31`), which produces `//drug/…`. Express doesn't collapse the double slash, so the request won't match the route. **Fix:** remove the trailing slash in the README, and/or build URLs with `new URL('drug/' + id, base)`.
 
-### C8 — Low — SQL string literals use double quotes
+### ~~C8 — Low — SQL string literals use double quotes~~ ✅ Fixed
+
+> **Fixed** — on `fix/c8-sql-literals`. `"NDC"` and the RELA exclusion list are now bound parameters (`:ndc`, `:...inverseRelas`). The list lives in an `INVERSE_RELAS` constant.
 
 `drug.service.ts:45` (`ATN = "NDC"`) and `:61` (the `RELA NOT IN ("…")` list) use double-quoted literals. These work under the current `sql_mode`. They would turn into identifiers, and break the query, if `ANSI_QUOTES` were ever enabled. **Fix:** use single quotes, or better, bind them as parameters, as `search.service.ts` already does.
 

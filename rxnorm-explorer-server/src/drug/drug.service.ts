@@ -7,6 +7,21 @@ import { RXNREL } from '../db/entities/RXNREL.entity';
 import { EXCLUDED_TTYS } from '../shared/excludedTtys';
 import { RXNSAT } from '../db/entities/RXNSAT.entity';
 
+// The inverse side of each relationship. RXNREL stores both directions, so
+// leaving these out keeps each relationship to one row.
+const INVERSE_RELAS = [
+  'inverse_isa',
+  'ingredient_of',
+  'tradename_of',
+  'dose_form_of',
+  'precise_ingredient_of',
+  'doseformgroup_of',
+  'ingredients_of',
+  'part_of',
+  'boss_of',
+  'form_of',
+];
+
 @Injectable()
 export class DrugService {
   constructor(
@@ -42,8 +57,9 @@ export class DrugService {
       | [] = await this.rxnsatRepository
       .createQueryBuilder('rxnsat')
       .select(['rxnsat.ATV AS ATV'])
-      .where('rxnsat.RXAUI = :drugAUI AND rxnsat.ATN = "NDC"', {
+      .where('rxnsat.RXAUI = :drugAUI AND rxnsat.ATN = :ndc', {
         drugAUI: drug.RXAUI,
+        ndc: 'NDC',
       })
       .getRawMany();
 
@@ -57,9 +73,9 @@ export class DrugService {
       .addSelect(['c1.id', 'c1.RXCUI', 'c1.TTY', 'c1.STR'])
       .addSelect(['c2.id', 'c2.RXCUI', 'c2.TTY', 'c2.STR'])
       .where('r.RELA IS NOT NULL')
-      .andWhere(
-        'r.RELA NOT IN ("inverse_isa", "ingredient_of", "tradename_of", "dose_form_of", "precise_ingredient_of", "doseformgroup_of", "ingredients_of", "part_of", "boss_of", "form_of")',
-      )
+      .andWhere('r.RELA NOT IN (:...inverseRelas)', {
+        inverseRelas: INVERSE_RELAS,
+      })
       .andWhere('(r.RXCUI1 = :RXCUI OR r.RXCUI2 = :RXCUI)', {
         RXCUI: drug.RXCUI,
       })

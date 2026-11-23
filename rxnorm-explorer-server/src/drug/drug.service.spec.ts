@@ -108,10 +108,9 @@ describe('DrugService', () => {
 
     expect(ndcQuery.select).toHaveBeenCalledWith(['rxnsat.ATV AS ATV']);
     expect(ndcQuery.where).toHaveBeenCalledWith(
-      expect.stringContaining('rxnsat.RXAUI = :drugAUI'),
-      { drugAUI: '1234567' },
+      'rxnsat.RXAUI = :drugAUI AND rxnsat.ATN = :ndc',
+      { drugAUI: '1234567', ndc: 'NDC' },
     );
-    expect(ndcQuery.where.mock.calls[0][0]).toContain('rxnsat.ATN = "NDC"');
   });
 
   it('gives an empty NDC list when the drug has none', async () => {
@@ -145,10 +144,16 @@ describe('DrugService', () => {
     await service.getDrug(127);
 
     expect(relatedQuery.where).toHaveBeenCalledWith('r.RELA IS NOT NULL');
-    const inverse: string = relatedQuery.andWhere.mock.calls[0][0];
-    for (const rela of ['inverse_isa', 'ingredient_of', 'tradename_of']) {
-      expect(inverse).toContain(`"${rela}"`);
-    }
+    expect(relatedQuery.andWhere).toHaveBeenCalledWith(
+      'r.RELA NOT IN (:...inverseRelas)',
+      {
+        inverseRelas: expect.arrayContaining([
+          'inverse_isa',
+          'ingredient_of',
+          'tradename_of',
+        ]),
+      },
+    );
     expect(relatedQuery.andWhere).toHaveBeenCalledWith(
       'c1.TTY NOT IN (:excludeTtys)',
       { excludeTtys: EXCLUDED_TTYS },
