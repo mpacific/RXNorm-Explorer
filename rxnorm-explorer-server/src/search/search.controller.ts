@@ -1,29 +1,22 @@
-import { Controller, Get, Query, Res } from '@nestjs/common';
+import { Controller, Get, Query, UseInterceptors } from '@nestjs/common';
+import { CacheControlInterceptor } from '../shared/cache-control.interceptor';
 import { SearchService } from './search.service';
-import type { Response } from 'express';
-import type { SearchResults } from '../../types/searchResults';
+import type { SearchResults } from '../types/searchResults';
+import { SearchQueryDto } from './dto/search-query.dto';
 
 @Controller('search')
 export class SearchController {
-  constructor(private readonly serchService: SearchService) {}
+  constructor(private readonly searchService: SearchService) {}
 
   @Get()
-  async searchDrugs(
-    @Query('searchTerm') searchTerm: string,
-    @Query('cursor') cursor: string,
-    @Query('cursorId') cursorId: string,
-    @Query('sortField') sortField: string,
-    @Query('sortDirection') sortDirection: 'ASC' | 'DESC' | 'asc' | 'desc',
-    @Res() res: Response,
-  ): Promise<Response> {
-    const drugs: SearchResults = await this.serchService.searchDrugs(
-      searchTerm,
-      cursor,
-      cursorId,
-      sortField,
-      sortDirection,
+  @UseInterceptors(CacheControlInterceptor)
+  searchDrugs(@Query() query: SearchQueryDto): Promise<SearchResults> {
+    return this.searchService.searchDrugs(
+      query.searchTerm,
+      query.cursor,
+      query.cursorId,
+      query.sortField,
+      query.sortDirection,
     );
-
-    return res.status(200).json(drugs);
   }
 }

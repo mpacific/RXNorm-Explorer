@@ -28,7 +28,9 @@ function SearchForTerm() {
 
   return (
     <>
-      <SearchBox searchTerm={searchTerm} />
+      {/* Keyed so back/forward, which changes the term without remounting,
+          resets the box to the URL's term */}
+      <SearchBox key={`box:${searchTerm}`} searchTerm={searchTerm} />
       {searchTerm && (
         // Keyed on the search term so a new search remounts rather than
         // re-rendering -- otherwise the cursor from the old search survives
