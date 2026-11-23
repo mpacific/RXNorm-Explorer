@@ -5,6 +5,16 @@ import RootLayout, { metadata } from './layout';
 // The MUI cache provider hooks into Next's server rendering
 vi.mock('next/navigation', () => ({ useServerInsertedHTML: vi.fn() }));
 
+// next/font is compiled away by Next's build; outside it, stand in for the
+// loader with the class names it would generate.
+vi.mock('next/font/google', () => ({
+  Roboto: () => ({
+    className: 'roboto',
+    variable: 'roboto-variable',
+    style: { fontFamily: 'Roboto' },
+  }),
+}));
+
 // The layout renders the <html> element itself, so it's rendered to markup
 // rather than mounted inside the test document.
 const renderLayout = () =>
@@ -20,6 +30,10 @@ const renderLayout = () =>
 describe('RootLayout', () => {
   it('is an English document', () => {
     expect(renderLayout().documentElement.lang).toBe('en');
+  });
+
+  it('makes the self-hosted font available to the theme', () => {
+    expect(renderLayout().documentElement.className).toBe('roboto-variable');
   });
 
   it('has a header that links home', () => {

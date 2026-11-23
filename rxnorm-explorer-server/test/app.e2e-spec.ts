@@ -6,8 +6,8 @@ import { DataSource } from 'typeorm';
 import { AppModule } from './../src/app.module';
 import { configureApp } from './../src/main';
 import { EXCLUDED_TTYS } from './../src/shared/excludedTtys';
-import type { SearchResults } from './../types/searchResults';
-import type { Drug } from './../types/drug';
+import type { SearchResults } from '../src/types/searchResults';
+import type { Drug } from '../src/types/drug';
 
 // Runs against the database in .env, with whatever RxNorm release is loaded,
 // so the fixtures are looked up rather than hard-coded and expectations are
@@ -17,8 +17,8 @@ describe('RxNorm Explorer API (e2e)', () => {
   let db: DataSource;
 
   // An ingredient with plenty of products, and an atom that has an NDC
-  let ingredient: { id: number; RXCUI: string; STR: string };
-  let withNdc: { id: number; RXCUI: string; NDC: string };
+  let ingredient: { id: number; RXAUI: string; RXCUI: string; STR: string };
+  let withNdc: { id: number; RXAUI: string; RXCUI: string; NDC: string };
 
   const excluded = EXCLUDED_TTYS.map((tty) => `'${tty}'`).join(', ');
 
@@ -32,10 +32,10 @@ describe('RxNorm Explorer API (e2e)', () => {
     db = app.get(DataSource);
 
     [ingredient] = await db.query(
-      "SELECT id, RXCUI, STR FROM RXNCONSO WHERE STR = 'acetaminophen' AND TTY = 'IN' LIMIT 1",
+      "SELECT id, RXAUI, RXCUI, STR FROM RXNCONSO WHERE STR = 'acetaminophen' AND TTY = 'IN' LIMIT 1",
     );
     [withNdc] = await db.query(
-      `SELECT c.id, c.RXCUI, s.ATV AS NDC
+      `SELECT c.id, c.RXAUI, c.RXCUI, s.ATV AS NDC
        FROM RXNSAT s JOIN RXNCONSO c ON c.RXAUI = s.RXAUI
        WHERE s.ATN = 'NDC' AND c.TTY NOT IN (${excluded})
        ORDER BY c.id LIMIT 1`,
@@ -102,14 +102,19 @@ describe('RxNorm Explorer API (e2e)', () => {
     return { ids, totalResults };
   };
 
-  describe('GET /', () => {
-    it('responds', () =>
-      request(app.getHttpServer()).get('/').expect(200).expect('Hello World!'));
+  describe('GET /health', () => {
+    it('is up while the database answers', () =>
+      request(app.getHttpServer())
+        .get('/health')
+        .expect(200)
+        .expect({ status: 'ok' }));
   });
 
   describe('middleware', () => {
     it('sets security headers', async () => {
-      const response = await request(app.getHttpServer()).get('/').expect(200);
+      const response = await request(app.getHttpServer())
+        .get('/health')
+        .expect(200);
 
       expect(response.headers['x-content-type-options']).toBe('nosniff');
       expect(response.headers['x-frame-options']).toBe('SAMEORIGIN');
@@ -118,17 +123,20 @@ describe('RxNorm Explorer API (e2e)', () => {
 
     it('allows the configured origin', async () => {
       const response = await request(app.getHttpServer())
-        .get('/')
+        .get('/health')
         .set('Origin', 'http://localhost:3000');
 
       expect(response.headers['access-control-allow-origin']).toBe(
         'http://localhost:3000',
       );
+      expect(
+        response.headers['access-control-allow-credentials'],
+      ).toBeUndefined();
     });
 
     it('does not allow other origins', async () => {
       const response = await request(app.getHttpServer())
-        .get('/')
+        .get('/health')
         .set('Origin', 'https://evil.example');
 
       expect(response.headers['access-control-allow-origin']).toBeUndefined();
@@ -158,6 +166,7 @@ describe('RxNorm Explorer API (e2e)', () => {
         expected.slice(0, 50),
       );
       expect(Object.keys(body.searchResults[0]).sort()).toEqual([
+        'RXAUI',
         'RXCUI',
         'STR',
         'TTY',
@@ -266,36 +275,34 @@ describe('RxNorm Explorer API (e2e)', () => {
         .expect(200)
         .expect({ totalResults: 0, searchResults: [] }));
 
-    it('sorts by name when asked to sort by a column it does not allow', async () => {
-      const byName = await search({ searchTerm: 'acetaminophen' });
-      const byId = await search({
-        searchTerm: 'acetaminophen',
-        sortField: 'id',
-      }).expect(200);
+    it('rejects a sort column it does not allow', () =>
+      search({ searchTerm: 'acetaminophen', sortField: 'id' }).expect(400));
 
-      expect(byId.body).toEqual(byName.body);
-    });
+    it('rejects a repeated search term rather than failing', () =>
+      request(app.getHttpServer())
+        .get('/search?searchTerm=a&searchTerm=b')
+        .expect(400));
   });
 
-  describe('GET /drug/:id', () => {
+  describe('GET /drug/:rxaui', () => {
     it('returns the drug, its NDCs and its related drugs', async () => {
       const { body } = (await request(app.getHttpServer())
-        .get(`/drug/${ingredient.id}`)
+        .get(`/drug/${ingredient.RXAUI}`)
         .expect(200)) as { body: Drug };
 
       expect(body).toMatchObject({
-        id: Number(ingredient.id),
+        RXAUI: ingredient.RXAUI,
         RXCUI: ingredient.RXCUI,
         STR: 'acetaminophen',
         TTY: 'IN',
       });
-      expect(typeof body.ATV).toBe('string');
+      expect(Array.isArray(body.NDCs)).toBe(true);
       expect(body.RelatedDrugs?.length).toBeGreaterThan(0);
     });
 
     it('relates only to this concept, without inverse links or excluded types', async () => {
       const { body } = (await request(app.getHttpServer())
-        .get(`/drug/${ingredient.id}`)
+        .get(`/drug/${ingredient.RXAUI}`)
         .expect(200)) as { body: Drug };
 
       for (const related of body.RelatedDrugs ?? []) {
@@ -312,10 +319,23 @@ describe('RxNorm Explorer API (e2e)', () => {
 
     it("lists the drug's NDCs", async () => {
       const { body } = (await request(app.getHttpServer())
-        .get(`/drug/${withNdc.id}`)
+        .get(`/drug/${withNdc.RXAUI}`)
         .expect(200)) as { body: Drug };
 
-      expect(body.ATV.split(', ')).toContain(withNdc.NDC);
+      expect(body.NDCs).toContain(withNdc.NDC);
+    });
+
+    it('rejects something that is not an RXAUI', () =>
+      request(app.getHttpServer())
+        .get(`/drug/${ingredient.RXAUI}abc`)
+        .expect(400));
+
+    it('does not expose the internal row id', async () => {
+      const { body } = (await request(app.getHttpServer())
+        .get(`/drug/${ingredient.RXAUI}`)
+        .expect(200)) as { body: Drug & { id?: unknown } };
+
+      expect(body.id).toBeUndefined();
     });
 
     it('returns a 404 for a drug that does not exist', () =>

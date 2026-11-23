@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [rxnorm-explorer-server, rxnorm-explorer-client]
+    defaults:
+      run:
+        working-directory: ${{ matrix.package }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ${{ matrix.package }}/package-lock.json
+
+      - run: npm ci
+
+      # Fails on known high or critical advisories in runtime dependencies
+      - run: npm audit --omit=dev --audit-level=high
+
+      # eslint directly rather than `npm run lint`, which runs with --fix
+      - name: Lint
+        run: npx eslint ${{ matrix.package == 'rxnorm-explorer-server' && '"{src,test}/**/*.ts"' || '.' }}
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      # Unit tests only: the server's e2e suite needs a MySQL loaded with a
+      # RxNorm release, which CI doesn't have.
+      - run: npm test
+
+      - run: npm run build
