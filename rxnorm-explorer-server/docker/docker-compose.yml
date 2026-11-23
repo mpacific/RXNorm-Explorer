@@ -1,0 +1,17 @@
+# Local MySQL for RxNorm Explorer. Copy .env.example to .env first, then run
+# `docker compose up -d` from this directory (see the main README).
+name: rxnorm-explorer
+
+services:
+  mysql:
+    container_name: rxnorm-explorer-db
+    # Unpinned to match existing data directories; pin a version (e.g.
+    # mysql:9) for new setups if you want upgrades to be deliberate.
+    image: mysql
+    ports:
+      - ${DOCKER_PORT}:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DOCKER_ROOT_PASSWORD}
+    volumes:
+      # git-ignored; holds the imported RxNorm data
+      - './mysqldata:/var/lib/mysql'

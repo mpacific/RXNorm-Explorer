@@ -331,7 +331,9 @@ The client imports `../../../rxnorm-explorer-server/types/drug` (`drugDetail.tsx
 
 ## 5. Docs, tooling and operations
 
-### D1 — The README's setup steps reference files that aren't in the repo
+### ~~D1 — The README's setup steps reference files that aren't in the repo~~ ✅ Fixed
+
+> **Fixed** — on `fix/d1-docker-compose`. `docker/docker-compose.yml` and `docker/.env.example` were deleted by `d7167fc` ("Replace graphql with Nest.js") and are now restored from the commit before it. Your running `rxnorm-explorer-db` container was started from that same file. The obsolete `version:` key and the unused top-level volume are gone. `docker compose config` validates it.
 
 `README.md:14-16` tells you to work in `rxnorm-explorer-server/docker`, copy `.env.example`, and run `docker compose up -d`. That directory only holds the git-ignored `mysqldata/`. There is no `docker-compose.yml` and no `.env.example` in it. A fresh clone can't follow the setup. **Fix:** commit the compose file and its `.env.example`.
 
@@ -371,7 +373,7 @@ Add a workflow that runs, for both packages: `npm ci`, `lint`, `tsc --noEmit`, `
 | 4 | ~~S4: `ValidationPipe` + DTOs + `ParseIntPipe`~~ ✅ | Small |
 | 5 | ~~C2: fix the migration `down()` SQL~~ ✅ | Minutes |
 | 6 | C4 + D2: get tests passing, add SearchService tests and CI | Medium |
-| 7 | D1: commit the docker compose setup | Small |
+| 7 | ~~D1: commit the docker compose setup~~ ✅ | Small |
 | 8 | ~~C3: switch public ids to `RXAUI`; document the data reload~~ ✅ | Medium |
 | 9 | P1 + P2: minimum term length / capped count; bound the drug-detail payload | Small–Medium |
 | 10 | P4: caching headers or a server-rendered drug page | Small–Medium |
