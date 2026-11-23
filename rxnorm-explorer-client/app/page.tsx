@@ -1,4 +1,3 @@
-'use client';
 import { Container, Typography } from '@mui/material';
 import SearchBox from './components/searchBox';
 

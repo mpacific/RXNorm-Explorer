@@ -15,18 +15,29 @@ describe('entities', () => {
   const columns = (target: EntityClass) =>
     storage.filterColumns(target).map((column) => column.propertyName);
 
-  const indexed = (target: EntityClass) =>
-    storage.filterIndices(target).flatMap((index) => index.columns as string[]);
+  // Index name -> its columns and whether it's unique
+  const indices = (target: EntityClass) =>
+    Object.fromEntries(
+      storage
+        .filterIndices(target)
+        .map((index) => [
+          index.name,
+          { columns: index.columns as string[], unique: index.unique ?? false },
+        ]),
+    );
+
+  const length = (target: EntityClass, property: string) =>
+    storage.filterColumns(target).find((c) => c.propertyName === property)
+      ?.options.length;
 
   it.each([
     [RXNCONSO, 'RXNCONSO'],
     [RXNREL, 'RXNREL'],
     [RXNSAT, 'RXNSAT'],
   ])('maps %p to the %s table with a generated id', (target, table) => {
-    // No explicit table name, so TypeORM uses the class name
-    expect(
-      storage.tables.find((t) => t.target === target)?.name,
-    ).toBeUndefined();
+    // Named explicitly: TypeORM would otherwise lower-case the class name,
+    // which only works on servers with case-insensitive table names
+    expect(storage.tables.find((t) => t.target === target)?.name).toBe(table);
     expect(target.name).toBe(table);
     expect(
       storage.generations.find(
@@ -58,11 +69,15 @@ describe('entities', () => {
       'SUPPRESS',
       'CVF',
     ]);
-    expect(
-      storage.filterColumns(RXNCONSO).find((c) => c.propertyName === 'RXAUI')
-        ?.options.unique,
-    ).toBe(true);
-    expect(indexed(RXNCONSO)).toEqual(expect.arrayContaining(['RXCUI', 'TTY']));
+    // Named as migration 1789068330590 creates them; STR has no index since
+    // migration 1790709373981 dropped both
+    expect(indices(RXNCONSO)).toEqual({
+      RXNCONSO_RXAUI_key: { columns: ['RXAUI'], unique: true },
+      RXNCONSO_RXCUI_idx: { columns: ['RXCUI'], unique: false },
+      RXNCONSO_TTY_idx: { columns: ['TTY'], unique: false },
+    });
+    expect(length(RXNCONSO, 'STR')).toBe(3000);
+    expect(length(RXNCONSO, 'RXAUI')).toBe(8);
   });
 
   it('maps the RRF columns of RXNREL', () => {
@@ -85,9 +100,10 @@ describe('entities', () => {
       'SUPPRESS',
       'CVF',
     ]);
-    expect(indexed(RXNREL)).toEqual(
-      expect.arrayContaining(['RXCUI1', 'RXCUI2']),
-    );
+    expect(indices(RXNREL)).toEqual({
+      RXNREL_RXCUI1_idx: { columns: ['RXCUI1'], unique: false },
+      RXNREL_RXCUI2_idx: { columns: ['RXCUI2'], unique: false },
+    });
   });
 
   it('maps the RRF columns of RXNSAT', () => {
@@ -107,9 +123,21 @@ describe('entities', () => {
       'SUPPRESS',
       'CVF',
     ]);
-    expect(indexed(RXNSAT)).toEqual(
-      expect.arrayContaining(['RXAUI', 'ATN', 'ATV']),
-    );
+    expect(indices(RXNSAT)).toEqual({
+      RXNSAT_RXAUI_idx: { columns: ['RXAUI'], unique: false },
+      RXNSAT_ATN_idx: { columns: ['ATN'], unique: false },
+      RXNSAT_ATV_idx: { columns: ['ATV'], unique: false },
+    });
+    // ATN(100) and ATV(100) are prefix indexes, which TypeORM must not
+    // try to rebuild as full-column ones
+    expect(
+      storage
+        .filterIndices(RXNSAT)
+        .filter((index) => index.synchronize === false)
+        .map((index) => index.name),
+    ).toEqual(['RXNSAT_ATN_idx', 'RXNSAT_ATV_idx']);
+    expect(length(RXNSAT, 'ATN')).toBe(1000);
+    expect(length(RXNSAT, 'ATV')).toBe(4000);
   });
 
   it('relates attributes to their atom by RXAUI, in both directions', () => {
@@ -141,6 +169,10 @@ describe('entities', () => {
       storage.joinColumns.find(
         (join) => join.target === RXNSAT && join.propertyName === 'RXNCONSO',
       ),
-    ).toMatchObject({ name: 'RXAUI', referencedColumnName: 'RXAUI' });
+    ).toMatchObject({
+      name: 'RXAUI',
+      referencedColumnName: 'RXAUI',
+      foreignKeyConstraintName: 'RXNSAT_RXAUI_fkey',
+    });
   });
 });
