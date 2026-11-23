@@ -5,7 +5,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { DrugController } from './drug.controller';
 import { DrugService } from './drug.service';
-import { Drug } from '../../types/drug';
+import { Drug } from '../types/drug';
 import { rejectionOf } from '../test-utils/testing';
 
 describe('DrugController', () => {

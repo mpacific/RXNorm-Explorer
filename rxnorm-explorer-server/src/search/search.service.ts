@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RXNCONSO } from '../db/entities/RXNCONSO.entity';
 import { Brackets, Repository } from 'typeorm';
-import { SearchResults } from '../../types/searchResults';
+import { SearchResults } from '../types/searchResults';
 import { EXCLUDED_TTYS } from '../shared/excludedTtys';
 
 const SORT_FIELDS = ['STR', 'RXCUI', 'TTY'] as const;
