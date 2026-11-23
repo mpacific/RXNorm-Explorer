@@ -87,23 +87,38 @@ describe('migrations', () => {
   describe('AddRelationsToTables', () => {
     const migration = new AddRelationsToTables1790698212730();
 
-    it('links RXNSAT to RXNCONSO by atom', async () => {
-      const up = await run(migration, 'up');
+    // The orphan check is the first query; answer it with a count
+    const runWithOrphans = async (orphans: number | string) => {
+      const query = jest
+        .fn()
+        .mockResolvedValueOnce([{ orphans }])
+        .mockResolvedValue(undefined);
+      await migration.up({ query } as unknown as QueryRunner);
+      return query.mock.calls.map(([sql]) => sql as string);
+    };
 
-      expect(up).toEqual([
-        'SET FOREIGN_KEY_CHECKS=0',
+    it('links RXNSAT to RXNCONSO by atom, with foreign key checks left on', async () => {
+      const up = await runWithOrphans('0');
+
+      expect(up).toHaveLength(2);
+      expect(up[0]).toMatch(/^SELECT COUNT\(\*\) AS orphans FROM `RXNSAT`/);
+      expect(up[1]).toBe(
         'ALTER TABLE `RXNSAT` ADD CONSTRAINT `RXNSAT_RXAUI_fkey` FOREIGN KEY (`RXAUI`) REFERENCES `RXNCONSO`(`RXAUI`) ON DELETE SET NULL ON UPDATE CASCADE',
-        'SET FOREIGN_KEY_CHECKS=1',
-      ]);
+      );
+      expect(up.join('\n')).not.toContain('FOREIGN_KEY_CHECKS');
+    });
+
+    it('refuses to add the key when attributes point at missing atoms', async () => {
+      await expect(runWithOrphans(3)).rejects.toThrow(
+        /^3 RXNSAT rows point at an RXAUI that isn't in RXNCONSO; find them with: SELECT s\.\* FROM/,
+      );
     });
 
     it('removes the link on the way down', async () => {
       const down = await run(migration, 'down');
 
       expect(down).toEqual([
-        'SET FOREIGN_KEY_CHECKS=0',
         'ALTER TABLE `RXNSAT` DROP FOREIGN KEY `RXNSAT_RXAUI_fkey`',
-        'SET FOREIGN_KEY_CHECKS=1',
       ]);
     });
   });

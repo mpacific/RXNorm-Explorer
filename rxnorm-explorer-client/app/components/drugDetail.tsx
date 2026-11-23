@@ -8,9 +8,9 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import { Drug } from '../../../rxnorm-explorer-server/types/drug';
+import { Drug } from '../../../rxnorm-explorer-server/src/types/drug';
 import Link from 'next/link';
-import { RelatedDrug } from '../../../rxnorm-explorer-server/types/relatedDrugs';
+import { RelatedDrug } from '../../../rxnorm-explorer-server/src/types/relatedDrugs';
 import { ReactElement } from 'react';
 import { DataGrid, GridRenderCellParams } from '@mui/x-data-grid';
 
@@ -34,12 +34,12 @@ const translateRELA = (RELA: string): string => {
 };
 
 const linkDrug = (
-  pageDrugId: number,
-  linkDrugId: number,
+  pageRxaui: string,
+  linkRxaui: string,
   linkDrugName: string,
   linkDrugTty: string
 ): ReactElement => {
-  if (Number(pageDrugId) === Number(linkDrugId)) {
+  if (pageRxaui === linkRxaui) {
     return (
       <span>
         {linkDrugName} ({linkDrugTty})
@@ -47,7 +47,7 @@ const linkDrug = (
     );
   }
   return (
-    <Link href={'/drug/' + linkDrugId}>
+    <Link href={'/drug/' + linkRxaui}>
       {linkDrugName} ({linkDrugTty})
     </Link>
   );
@@ -61,15 +61,23 @@ type DetailRelatedDrug = {
 };
 
 export default function DrugDetail(props: { drug: Drug }) {
-  const ndcArray = props.drug?.ATV?.split(',');
-
   const rows: DetailRelatedDrug[] = [];
   props.drug?.RelatedDrugs?.map((drug: RelatedDrug): void => {
     rows.push({
-      id: drug.c1_id + '-' + drug.c2_id + '-' + drug.r_id,
-      c1_name: linkDrug(props.drug.id, drug.c1_id, drug.c1_STR, drug.c1_TTY),
+      id: drug.c1_RXAUI + '-' + drug.c2_RXAUI + '-' + drug.r_id,
+      c1_name: linkDrug(
+        props.drug.RXAUI,
+        drug.c1_RXAUI,
+        drug.c1_STR,
+        drug.c1_TTY
+      ),
       relationship: translateRELA(drug.r_RELA),
-      c2_name: linkDrug(props.drug.id, drug.c2_id, drug.c2_STR, drug.c2_TTY),
+      c2_name: linkDrug(
+        props.drug.RXAUI,
+        drug.c2_RXAUI,
+        drug.c2_STR,
+        drug.c2_TTY
+      ),
     });
   });
 
@@ -106,7 +114,7 @@ export default function DrugDetail(props: { drug: Drug }) {
               >
                 {props.drug.TTY}
               </TableCell>
-              <TableCell>{ndcArray?.join(', ') || 'None'}</TableCell>
+              <TableCell>{props.drug.NDCs.join(', ') || 'None'}</TableCell>
             </TableRow>
           </TableBody>
         </Table>

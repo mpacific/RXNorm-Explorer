@@ -25,6 +25,7 @@ const lastListProps = () => listRenders[listRenders.length - 1];
 
 const row = (id: number, STR = `drug ${id}`): SearchResult => ({
   id,
+  RXAUI: `A${id}`,
   RXCUI: String(1000 + id),
   TTY: 'SCD',
   STR,
