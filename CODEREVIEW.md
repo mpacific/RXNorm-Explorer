@@ -217,7 +217,9 @@ The server joins NDCs with `', '` (`drug.service.ts:50`). The client splits on `
 
 All timings below are from the local database (MySQL 26.7, the full prescribable-content release).
 
-### P1 — Medium — Short search terms scan most of the table, twice
+### ~~P1 — Medium — Short search terms scan most of the table, twice~~ 🟡 Partly fixed
+
+> **Partly fixed** — on `fix/p1-search-cost` (option 1): words shorter than 2 characters are left out of the name `LIKE`, though the whole term still matches RXCUI/NDC exactly. `a` no longer scans and counts ~96k rows. **Measured and not done:** (a) `COUNT(*) OVER()` in the page query was *slower* than the separate count for `a` (306 ms against 149 ms), so I dropped that idea. (b) A capped count is cheap (50 ms against 149 ms), but the grid's server-side paging uses the total as its row count, so a cap would block paging past it. That needs a UX decision ("1,000+" with open-ended paging). (c) The ngram FULLTEXT index is a bigger change. **Still open:** the search box doesn't yet tell people that one-letter words are ignored.
 
 The name matcher is `STR LIKE '%word%'`, which can't use an index. On the first page the count query and the page query each do that scan, in parallel:
 

@@ -132,6 +132,34 @@ describe('SearchService', () => {
       expect(Object.keys(parameters())).toHaveLength(11); // term + 10 words
     });
 
+    it('leaves one-letter words out of the name match', async () => {
+      await search('vitamin a');
+
+      expect(matchesSql()).toContain('STR LIKE :word0');
+      expect(matchesSql()).not.toContain(':word1');
+      expect(parameters()).toEqual({ term: 'vitamin a', word0: '%vitamin%' });
+    });
+
+    it('matches only RXCUIs and NDCs when every word is too short', async () => {
+      await search('a 1');
+
+      expect(matchesSql()).not.toContain('STR LIKE');
+      expect(matchesSql()).toContain('RXCUI = :term');
+      expect(matchesSql()).toContain('s.ATV = :term');
+      expect(parameters()).toEqual({ term: 'a 1' });
+    });
+
+    it('drops short words before capping, so they do not use up the ten', async () => {
+      const words = [
+        ...Array.from({ length: 5 }, (_, i) => String.fromCharCode(97 + i)),
+        ...Array.from({ length: 12 }, (_, i) => `w${i}`),
+      ];
+      await search(words.join(' '));
+
+      expect(parameters().word0).toBe('%w0%');
+      expect(parameters().word9).toBe('%w9%');
+    });
+
     it.each([
       ['100%', '%100\\%%'],
       ['a_b', '%a\\_b%'],
