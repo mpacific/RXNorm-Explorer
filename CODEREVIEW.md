@@ -209,7 +209,9 @@ The server joins NDCs with `', '` (`drug.service.ts:50`). The client splits on `
 
 `main.ts:30` calls `bootstrap()` as a floating promise (this is the only ESLint warning). On top of that, `main.ts:9-19` throws `HttpException`s, which are meant for HTTP responses, during startup. **Fix:** use `bootstrap().catch((e) => { console.error(e); process.exit(1); })`, throw plain `Error`s, or better, move the checks into config validation (Q4).
 
-### C12 — Info — Product behaviors to confirm are intended
+### ~~C12 — Info — Product behaviors to confirm are intended~~ 🟡 Partly fixed
+
+> **Partly fixed** — third bullet only, on `fix/c12-error-messages`: client errors now show the status code and the API's own `message` (joined when it's a validation list), for example "Search results error: 400 Search term is required". They fall back to `statusText`, then to the bare status. **Left for you to decide:** whether a concept should appear once in the results (PSN atoms duplicate SCD/SBD rows), and whether RXCUI should sort numerically. Both change what users see.
 
 - **One concept can appear several times in search results.** A concept's SCD/SBD atom and its PSN (prescribable name) atom both show up. For "acetaminophen 500", 137 rows cover 92 distinct RXCUIs. If you want one row per concept, either exclude PSN or group by RXCUI.
 - **Sorting by RXCUI is lexicographic** because the column is `varchar(8)`, so `"1000000"` sorts before `"161"`. If numeric order is wanted, sort on `CAST(RXCUI AS UNSIGNED)` or add a numeric generated column. The keyset cursor would need the same cast.

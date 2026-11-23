@@ -6,13 +6,14 @@ import DrugDetail from '@/app/components/drugDetail';
 import { Drug } from '../../../../rxnorm-explorer-server/src/types/drug';
 import { useEffect, useState } from 'react';
 import { apiUrl } from '@/app/lib/apiUrl';
+import { apiError } from '@/app/lib/apiError';
 
 // The slug is the drug's RXAUI, which stays the same across RxNorm releases
 const getDrug = async (rxaui: string): Promise<Drug | null> => {
   const response = await fetch(apiUrl(`drug/${encodeURIComponent(rxaui)}`));
 
   if (!response.ok) {
-    throw new Error(`Load drug error: ${response.statusText}`);
+    throw await apiError('Load drug error', response);
   }
 
   return response.json();

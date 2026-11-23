@@ -44,13 +44,17 @@ describe('DrugDetailPage', () => {
 
   it('shows an error when the drug cannot be loaded', async () => {
     fetch.mockImplementation(
-      async () => new Response('{}', { status: 404, statusText: 'Not Found' })
+      async () =>
+        new Response(
+          JSON.stringify({ statusCode: 404, message: 'Drug not found' }),
+          { status: 404 }
+        )
     );
 
     render(<DrugDetailPage />);
 
     expect(
-      await screen.findByText(/Load drug error: Not Found/)
+      await screen.findByText(/Load drug error: 404 Drug not found/)
     ).toBeInTheDocument();
     expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
   });
