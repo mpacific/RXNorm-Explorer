@@ -1,55 +1,56 @@
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import DrugDetail from './drugDetail';
-import { Drug } from '../../../rxnorm-explorer-server/types/drug';
-import { RelatedDrug } from '../../../rxnorm-explorer-server/types/relatedDrugs';
+import DrugDetail, { NDC_PREVIEW_COUNT } from './drugDetail';
+import { Drug } from '../../../rxnorm-explorer-server/src/types/drug';
+import { RelatedDrug } from '../../../rxnorm-explorer-server/src/types/relatedDrugs';
 
 const related = (
   r_id: number,
   r_RELA: string,
-  c1: [number, string, string, string],
-  c2: [number, string, string, string]
+  c1: [string, string, string, string],
+  c2: [string, string, string, string]
 ): RelatedDrug => ({
   r_id,
   r_RELA,
   r_RXCUI1: c1[1],
   r_RXCUI2: c2[1],
-  c1_id: c1[0],
+  c1_RXAUI: c1[0],
   c1_RXCUI: c1[1],
   c1_TTY: c1[2],
   c1_STR: c1[3],
-  c2_id: c2[0],
+  c2_RXAUI: c2[0],
   c2_RXCUI: c2[1],
   c2_TTY: c2[2],
   c2_STR: c2[3],
 });
 
-const acetaminophen: [number, string, string, string] = [
-  127,
+// [RXAUI, RXCUI, TTY, STR]; acetaminophen is the drug the page shows
+const acetaminophen: [string, string, string, string] = [
+  '1234567',
   '161',
   'IN',
   'acetaminophen',
 ];
-const tablet: [number, string, string, string] = [
-  500,
+const tablet: [string, string, string, string] = [
+  '500',
   '313782',
   'SCD',
   'acetaminophen 325 MG Oral Tablet',
 ];
-const tylenol: [number, string, string, string] = [
-  600,
+const tylenol: [string, string, string, string] = [
+  '600',
   '202433',
   'BN',
   'Tylenol',
 ];
 
 const drug = (overrides: Partial<Drug> = {}): Drug => ({
-  id: 127,
   RXAUI: '1234567',
   RXCUI: '161',
   TTY: 'IN',
   STR: 'acetaminophen',
-  ATV: '00001, 00002',
+  NDCs: ['00001', '00002'],
   RelatedDrugs: [
     related(1, 'has_ingredient', tablet, acetaminophen),
     related(2, 'has_tradename', acetaminophen, tylenol),
@@ -83,15 +84,42 @@ describe('DrugDetail', () => {
   });
 
   it('lists its NDCs', () => {
-    render(<DrugDetail drug={drug({ ATV: '00001,00002,00003' })} />);
+    render(<DrugDetail drug={drug({ NDCs: ['00001', '00002', '00003'] })} />);
 
     expect(
       within(factsRow()).getByText('00001, 00002, 00003')
     ).toBeInTheDocument();
   });
 
+  it('shows only the first NDCs of a long list until asked for all', async () => {
+    const NDCs = Array.from({ length: 50 }, (_, i) =>
+      String(i).padStart(5, '0')
+    );
+    render(<DrugDetail drug={drug({ NDCs })} />);
+
+    const facts = within(factsRow());
+    const preview = NDCs.slice(0, NDC_PREVIEW_COUNT).join(', ');
+    expect(facts.getByText(preview)).toBeInTheDocument();
+    expect(facts.queryByText(NDCs.join(', '))).not.toBeInTheDocument();
+
+    await userEvent.click(
+      facts.getByRole('button', { name: 'Show all 50 NDCs' })
+    );
+    expect(facts.getByText(NDCs.join(', '))).toBeInTheDocument();
+
+    await userEvent.click(facts.getByRole('button', { name: 'Show fewer' }));
+    expect(facts.getByText(preview)).toBeInTheDocument();
+  });
+
+  it('has no button when every NDC fits', () => {
+    const NDCs = Array.from({ length: NDC_PREVIEW_COUNT }, (_, i) => `${i}`);
+    render(<DrugDetail drug={drug({ NDCs })} />);
+
+    expect(within(factsRow()).queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('says so when it has no NDCs', () => {
-    render(<DrugDetail drug={drug({ ATV: '' })} />);
+    render(<DrugDetail drug={drug({ NDCs: [] })} />);
 
     expect(within(factsRow()).getByText('None')).toBeInTheDocument();
   });

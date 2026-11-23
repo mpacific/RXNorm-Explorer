@@ -35,7 +35,8 @@ describe('datasource', () => {
     expect(loadDatasource(DATABASE_ENV).dataSourceOptions).toMatchObject({
       type: 'mysql',
       host: 'db.internal',
-      port: '3306',
+      // a number, though the environment only holds strings
+      port: 3306,
       username: 'rxnorm_app',
       password: 'secret',
       database: 'rxnorm',
@@ -47,7 +48,7 @@ describe('datasource', () => {
 
     expect(options.synchronize).toBe(false);
     expect(options.migrationsRun).toBe(false);
-    expect(options.migrationsTransactionMode).toBe('all');
+    expect(options.migrationsTransactionMode).toBe('each');
   });
 
   it('maps the three RxNorm tables and finds the migrations', () => {
@@ -77,6 +78,28 @@ describe('datasource', () => {
 
     expect(dataSource.options).toBe(dataSourceOptions);
     expect(dataSource.isInitialized).toBe(false);
+  });
+
+  it('runs migrations as the migration account when one is set', () => {
+    const { default: dataSource, dataSourceOptions } = loadDatasource({
+      ...DATABASE_ENV,
+      MIGRATION_DATABASE_USER: 'rxnorm_migrate',
+      MIGRATION_DATABASE_PASSWORD: 'migrate-secret',
+    });
+
+    expect(dataSource.options).toMatchObject({
+      username: 'rxnorm_migrate',
+      password: 'migrate-secret',
+      database: 'rxnorm',
+    });
+    // The API itself keeps the read-only account
+    expect(dataSourceOptions).toMatchObject({ username: 'rxnorm_app' });
+  });
+
+  it('needs a password for the migration account', () => {
+    expect(() =>
+      loadDatasource({ ...DATABASE_ENV, MIGRATION_DATABASE_USER: 'm' }),
+    ).toThrow('MIGRATION_DATABASE_PASSWORD');
   });
 
   it.each(Object.keys(DATABASE_ENV))('refuses to load without %s', (key) => {

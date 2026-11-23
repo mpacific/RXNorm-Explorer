@@ -2,14 +2,20 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RXNCONSO } from '../db/entities/RXNCONSO.entity';
 import { Brackets, Repository } from 'typeorm';
-import { SearchResults } from '../../types/searchResults';
+import { SearchResults } from '../types/searchResults';
 import { EXCLUDED_TTYS } from '../shared/excludedTtys';
 
-const SORT_FIELDS = ['STR', 'RXCUI', 'TTY'] as const;
+export const SORT_FIELDS = ['STR', 'RXCUI', 'TTY'] as const;
+export const SORT_DIRECTIONS = ['ASC', 'DESC', 'asc', 'desc'] as const;
 // Each word adds a LIKE to a scan of the whole table, so the cost grows with
 // every word (~2s at 300). Extra words are dropped rather than rejected so a
 // pasted long drug name still finds that drug.
 const MAX_SEARCH_WORDS = 10;
+// A one-letter word matches most of the table ('a' matches ~96k of ~246k
+// names) and costs a full scan to count and another to page, for results
+// nobody can use. Shorter words are left out of the name match; the term as
+// a whole is still matched exactly against RXCUIs and NDCs.
+export const MIN_SEARCH_WORD_LENGTH = 2;
 type SortField = (typeof SORT_FIELDS)[number];
 
 @Injectable()
@@ -20,11 +26,11 @@ export class SearchService {
   ) {}
 
   async searchDrugs(
-    searchTerm: string,
-    cursor: string,
-    cursorId: string,
-    sortField: string,
-    sortDirection: 'ASC' | 'DESC' | 'desc' | 'asc',
+    searchTerm?: string,
+    cursor?: string,
+    cursorId?: string,
+    sortField?: string,
+    sortDirection?: (typeof SORT_DIRECTIONS)[number],
   ): Promise<SearchResults> {
     const limit = 50;
     // sortField is interpolated into the SQL, so it has to come from a fixed list
@@ -55,7 +61,10 @@ export class SearchService {
     // Every word has to appear somewhere in the name, in any order, mid-word
     // included. The LIKE can't use an index, but one scan of STR is cheap; it
     // was the per-row subquery that made search slow.
-    const words = term.split(/\s+/).filter(Boolean).slice(0, MAX_SEARCH_WORDS);
+    const words = term
+      .split(/\s+/)
+      .filter((word) => word.length >= MIN_SEARCH_WORD_LENGTH)
+      .slice(0, MAX_SEARCH_WORDS);
     if (words.length) {
       matchers.unshift(
         'SELECT id FROM RXNCONSO WHERE ' +
@@ -114,6 +123,7 @@ export class SearchService {
       page
         .select([
           'rxnconso.id',
+          'rxnconso.RXAUI',
           'rxnconso.TTY',
           'rxnconso.RXCUI',
           'rxnconso.STR',
