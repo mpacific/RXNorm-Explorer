@@ -228,7 +228,9 @@ The responses are large, the UI is hard to use, and payloads like this hurt on m
 - Return NDCs as an array and paginate them, or show the first N with a "show all".
 - Paginate or group related drugs by relationship type (`RELA`) on the server.
 
-### P3 — Low — The drug detail queries run one after another when they don't need to
+### ~~P3 — Low — The drug detail queries run one after another when they don't need to~~ ✅ Fixed
+
+> **Fixed** — on `fix/p3-parallel-drug-queries`. The NDC and related-drugs queries run together in `Promise.all`, and a unit test checks that the second starts before the first finishes.
 
 `drug.service.ts:42-70`. After the first lookup, the NDC query and the related-drugs query don't depend on each other. **Fix:** run them with `Promise.all`. (The related-drugs query is already efficient: `EXPLAIN` shows an index-merge union on `RXNREL_RXCUI1_idx`/`RXCUI2_idx` and covering lookups on `RXNCONSO_RXCUI_idx`.)
 

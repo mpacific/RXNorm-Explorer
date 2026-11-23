@@ -170,4 +170,21 @@ describe('DrugService', () => {
     expect(relatedQuery.orderBy).toHaveBeenCalledWith('r.RXCUI1', 'ASC');
     expect(relatedQuery.addOrderBy).toHaveBeenCalledWith('r.RXCUI2', 'ASC');
   });
+
+  it('looks up NDCs and related drugs at the same time', async () => {
+    // Hold the NDC query open; the related-drugs query must start anyway
+    let finishNdcs!: (rows: { ATV: string }[]) => void;
+    ndcQuery.getRawMany.mockReturnValue(
+      new Promise((resolve) => {
+        finishNdcs = resolve;
+      }),
+    );
+
+    const pending = service.getDrug(127);
+    await new Promise(process.nextTick);
+
+    expect(relatedQuery.getRawMany).toHaveBeenCalled();
+    finishNdcs([]);
+    await expect(pending).resolves.toMatchObject({ ATV: '' });
+  });
 });
